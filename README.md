@@ -72,6 +72,15 @@ python scripts/fetch_public_data.py   # ~1.9 GB public CCTV, CC BY 4.0
 python scripts/render_synthetic.py    # synthetic physics clips: tune + heldout splits
 ```
 
+Recorded session footage goes in `data/raw/<session>/` with a `takes.csv`
+alongside it (that file *is* tracked). Session 1 was filmed off a playback
+screen, so it is cropped to the camera pane before use:
+
+```bash
+python scripts/prepare_footage.py --session session1   # crop, per configs/rois.yaml
+python scripts/eval_real.py --run                      # score + fill the console
+```
+
 ### Run the pipeline
 
 ```bash
@@ -153,6 +162,7 @@ downscaled to 1280×720, `imgsz=640`:
 | Detections on real CCTV | 57 and 52 on sample frames, correctly classed |
 | Offline operation | verified with sockets blocked — zero outbound connections |
 | Tests | 143 passing |
+| Evidence clips | H.264, browser-playable, faces blurred |
 
 Full breakdown in `artifacts/evaluation/latency.json`. Detection is ~99% of
 pipeline time, which means **the temporal reasoning layer is effectively free** —
@@ -322,3 +332,5 @@ as much a threshold as anything in `configs/behaviours.yaml`.
 `configs/` thresholds and zones · `scripts/` setup, fetch, evaluation, demo ·
 [`plan.md`](plan.md) architecture and sequencing · [`STATE.md`](STATE.md) live
 status and handoff · [`project.md`](project.md) requirements and acceptance criteria
+
+Judging deck: <https://claude.ai/code/artifact/3003a68e-4119-44de-9bda-7364e4211acc>

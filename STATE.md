@@ -318,32 +318,24 @@ Full original version with extra detail: `docs/RECORDING_GUIDE.md`.
 
 ## Next tasks
 
-Rewritten 9 Sep after a full file-wise and flow-wise audit. Blocks 1-4 of the
-previous list are complete.
+Ordered by value. The first item is worth more than the rest combined.
 
-### THE ONLY CRITICAL-PATH ITEM
+1. **Record 60 seconds of ordinary handling** — one clip where nothing bad
+   happens, from the same dock. Until this exists, precision on real footage is
+   permanently unmeasurable: every session-1 clip is a positive, so a detector
+   that fired constantly would score perfectly. Cheapest item here, highest value.
+2. **Log start/end times at record time** (`data/raw/<session>/takes.csv`).
+   Turns the clip-level presence check into real precision and recall.
+3. **Export directly from the recorder** instead of filming the playback screen.
+   Removes two lossy encodes, the moire, the software chrome and the drawn-on
+   annotations in one step — and makes `configs/rois.yaml` unnecessary.
+4. **Draw zone polygons for a real camera** in `configs/zones.yaml`. B07 and B12
+   cannot fire on session 1 at all because no camera there has zones.
+5. **Second offline rehearsal on the demo machine** with WiFi off. One has been
+   done from a clean clone.
+6. **Name the third teammate**, or accept the Lane C split in Ownership.
 
-1. **Film S1/S2/S3.** ~35 min. See *Recording brief* below.
-   Everything else is done or cosmetic. Without this the submission has **zero
-   per-behaviour precision/recall**, and five of the six flagship behaviours have
-   never fired on real video. This is the single thing standing between "built"
-   and "measured", and measurement is what the judging rewards.
-
-### Once footage exists (in order)
-
-2. Draw zones on the real scene → `configs/zones.yaml`. *Check:* a clip produces ≥1 incident.
-3. Tune thresholds on **S1/S2 only**. Log which session in the Decisions log.
-4. Run S3 **exactly once**: `python scripts/evaluate_events.py`. Report as measured.
-5. Ablation table on real video: `python scripts/run_ablations.py`.
-6. Fill the claims ledger with whatever comes out, good or bad.
-
-### Not gated on footage
-
-7. Screenshots → `artifacts/screenshots/` (console runs now: `./scripts/demo.sh`).
-8. 5-6 slide deck + demo recording.
-9. **Two offline rehearsals with WiFi off.** One has been done from a clean clone;
-   the second should be on the actual demo machine.
-10. Name the third teammate, or accept the Lane C split in Ownership.
+Deck: https://claude.ai/code/artifact/3003a68e-4119-44de-9bda-7364e4211acc
 
 ## Recent changes
 

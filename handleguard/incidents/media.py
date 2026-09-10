@@ -75,14 +75,20 @@ def write_evidence_assets(
         start_frame = max(int(start_t * fps), 0)
         end_frame = min(max(int(end_t * fps), start_frame), total_frames - 1)
 
-        writer = cv2.VideoWriter(
-            str(clip_path),
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            fps,
-            (width, height),
-        )
-        if not writer.isOpened():
-            writer.release()
+        # H.264 first, MPEG-4 Part 2 only as a fallback. An evidence clip that a
+        # browser will not decode is not evidence: the console embeds these in a
+        # <video> tag, and Chrome plays avc1 but shows a black rectangle for
+        # mp4v. avc1 is also roughly 3x smaller for the same footage.
+        writer = None
+        for fourcc in ("avc1", "mp4v"):
+            candidate = cv2.VideoWriter(
+                str(clip_path), cv2.VideoWriter_fourcc(*fourcc), fps, (width, height)
+            )
+            if candidate.isOpened():
+                writer = candidate
+                break
+            candidate.release()
+        if writer is None:
             return EvidenceAssets(None, None)
 
         thumb_written = False
