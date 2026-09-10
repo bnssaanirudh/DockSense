@@ -23,6 +23,10 @@ Rules:
 
 ## Ownership
 
+**Team name: Bay 9.** Submission folder is `GEGAI_Bay9`.
+**SPOC: Anirudh Badampudi** (`anirudhbadampudi@gmail.com`) — single point of
+contact for the organisers.
+
 Assigned 8 Sep from demonstrated work in git history, not guessed.
 
 | Lane | Directories | Owner |
@@ -335,7 +339,18 @@ Ordered by value. The first item is worth more than the rest combined.
    done from a clean clone.
 6. **Name the third teammate**, or accept the Lane C split in Ownership.
 
-Deck: https://claude.ai/code/artifact/3003a68e-4119-44de-9bda-7364e4211acc
+Submission bundle: `submission/GEGAI_Bay9/` — deck (PDF + PPTX), demo video
+under 3 minutes, figures, and a README naming the team and SPOC. Rebuild with:
+
+```bash
+python scripts/build_deck_pptx.py
+python scripts/build_demo_video.py
+```
+
+Live deck: https://claude.ai/code/artifact/3003a68e-4119-44de-9bda-7364e4211acc
+
+**Still to do by hand:** upload `submission/GEGAI_Bay9/` to Drive, set the link
+to *Anyone with the link can view*, and send the URL.
 
 ## Recent changes
 

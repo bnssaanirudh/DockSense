@@ -53,3 +53,7 @@ runs/
 
 # Keep small demo assets only
 !data/sample/**
+
+# Submission bundle: the deck and README are tracked, the rendered demo video is
+# not — it is 10s of MB and rebuildable with scripts/build_demo_video.py.
+submission/**/*.mp4
