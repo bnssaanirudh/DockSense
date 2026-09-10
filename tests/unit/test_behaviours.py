@@ -16,7 +16,8 @@ def _cfg(key: str) -> dict:
 def test_registry_builds_all_enabled_detectors():
     detectors = build_all(config.behaviours())
     assert len(detectors) == 12
-    assert [det.id for det in detectors] == [f"B{i:02d}" for i in range(1, 13)]
+    # Order is deliberate (a superseding detector runs first), so compare as a set.
+    assert sorted(det.id for det in detectors) == [f"B{i:02d}" for i in range(1, 13)]
 
 
 def test_drop_negative_gentle_place_stays_silent():

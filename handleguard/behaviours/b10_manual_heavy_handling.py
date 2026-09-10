@@ -4,7 +4,7 @@ from handleguard.behaviours.base import (
     BehaviourDetector,
     FrameContext,
     confidence_from,
-    sustained_seconds,
+    SustainedCondition,
 )
 
 EQUIPMENT_ROLES = {"equipment"}
@@ -29,11 +29,17 @@ class ManualHeavyHandlingDetector(BehaviourDetector):
     config_key = "manual_heavy_handling"
     requires_roles = {"product", "actor"}
 
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._held = SustainedCondition()
+
+    def reset(self) -> None:
+        self._held.reset()
+
     def update(self, ctx: FrameContext):
         events = []
         max_persons = int(self.cfg["max_persons"])
         min_duration = float(self.cfg["min_duration_seconds"])
-        lookback = float(self.cfg["cooldown_seconds"])
         percentile = float(self.cfg["large_object_area_percentile"])
 
         products = ctx.products()
@@ -62,8 +68,7 @@ class ManualHeavyHandlingDetector(BehaviourDetector):
             if equipment_present:
                 continue
 
-            window = ctx.window(track_id, lookback)
-            span = sustained_seconds(window, lambda f: True)
+            span = self._held.observe(track_id, ctx.t)
             if span < min_duration:
                 continue
 
@@ -72,7 +77,7 @@ class ManualHeavyHandlingDetector(BehaviourDetector):
                 self.event(
                     ctx,
                     (handlers[0], track_id),
-                    start_t=window[0].t if window else ctx.t,
+                    start_t=ctx.t - span,
                     severity=float(self.cfg["base_severity"]),
                     confidence=confidence_from(margin, track.conf),
                     evidence={

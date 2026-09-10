@@ -8,6 +8,8 @@ and destroys the demo.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import handleguard.config as config
 from handleguard.behaviours.b05_improper_stack import ImproperStackDetector
 from handleguard.behaviours.b06_unstable_stack import UnstableStackDetector
@@ -21,6 +23,23 @@ def _det(cls):
     return cls(dict(config.behaviours()[cls.config_key]))
 
 
+def _sustained(detector, ctx, seconds: float = 3.0, step: float = 0.1):
+    """Feed one static scene repeatedly so the condition can actually persist.
+
+    These detectors require the geometry to hold for `min_duration_seconds`. A
+    single `update()` call is a scene that has existed for zero seconds, so a
+    one-shot test could only pass while the duration gate was measuring track
+    age instead of how long the condition held — which is exactly the bug this
+    replaced.
+    """
+    events = []
+    t = ctx.t
+    while t <= ctx.t + seconds:
+        events = detector.update(replace(ctx, t=t))
+        t += step
+    return events
+
+
 # --- B05 improper stack ----------------------------------------------------
 
 def test_b05_silent_on_correct_stack():
@@ -28,7 +47,7 @@ def test_b05_silent_on_correct_stack():
 
 
 def test_b05_fires_on_large_box_on_small():
-    events = _det(ImproperStackDetector).update(synth.scenario_improper_stack())
+    events = _sustained(_det(ImproperStackDetector), synth.scenario_improper_stack())
     assert len(events) == 1
     ev = events[0]
     assert ev.behaviour_id == "B05"
@@ -44,7 +63,7 @@ def test_b06_silent_on_stable_stack():
 
 
 def test_b06_fires_on_overhanging_stack():
-    events = _det(UnstableStackDetector).update(synth.scenario_unstable_stack())
+    events = _sustained(_det(UnstableStackDetector), synth.scenario_unstable_stack())
     assert len(events) == 1
     assert events[0].behaviour_id == "B06"
     assert events[0].evidence["support_ratio"] < 0.6
@@ -57,7 +76,7 @@ def test_b08_silent_when_product_fully_on_pallet():
 
 
 def test_b08_fires_on_overhanging_product():
-    events = _det(PalletOverhangDetector).update(synth.scenario_pallet_overhang())
+    events = _sustained(_det(PalletOverhangDetector), synth.scenario_pallet_overhang())
     assert len(events) == 1
     ev = events[0]
     assert ev.behaviour_id == "B08"
@@ -72,7 +91,7 @@ def test_b09_silent_when_walking_past():
 
 
 def test_b09_fires_when_foot_rests_on_product():
-    events = _det(SteppingDetector).update(synth.scenario_stepping_on_product())
+    events = _sustained(_det(SteppingDetector), synth.scenario_stepping_on_product())
     assert len(events) == 1
     assert events[0].behaviour_id == "B09"
     assert events[0].evidence["foot_overlap"] >= 0.3

@@ -190,6 +190,38 @@ def sustained_seconds(window: Sequence[TrackFeatures], predicate) -> float:
     return max(end_t - start_t, 0.0)
 
 
+class SustainedCondition:
+    """How long a specific condition has held for a given key.
+
+    ``sustained_seconds(window, lambda f: True)`` measures how long the *track*
+    has existed, which is not the same thing at all: a stack that is still being
+    lowered into place satisfies "the box has been on screen 2 s" long before it
+    satisfies "this geometry has held for 2 s". Every static-geometry detector
+    was using the former and firing during the placement motion.
+
+    The key is whatever identifies the configuration — a track id, or a sorted
+    pair. A gap longer than ``max_gap`` means the condition lapsed and the clock
+    restarts, so a flicker does not accumulate into a sustained observation.
+    """
+
+    def __init__(self, max_gap: float = 0.5) -> None:
+        self.max_gap = max_gap
+        self._seen: dict[Any, tuple[float, float]] = {}
+
+    def observe(self, key: Any, t: float) -> float:
+        first, last = self._seen.get(key, (t, t))
+        if t - last > self.max_gap:
+            first = t
+        self._seen[key] = (first, t)
+        return max(t - first, 0.0)
+
+    def drop(self, key: Any) -> None:
+        self._seen.pop(key, None)
+
+    def reset(self) -> None:
+        self._seen.clear()
+
+
 def stack_pair(ctx: "FrameContext", upper_id: int, lower_id: int) -> tuple[float, float, float]:
     """Geometry of an upper box resting on a lower one.
 
@@ -198,8 +230,12 @@ def stack_pair(ctx: "FrameContext", upper_id: int, lower_id: int) -> tuple[float
     - ``area_ratio``    upper box area / lower box area. A **size proxy for weight**;
                         we cannot see mass, so anything derived from this must be
                         described as size-based, never as weight.
-    - ``overlap_x_ratio`` shared width / upper width — how much of the upper box sits
-                        over the lower one at all.
+    - ``overlap_x_ratio`` shared width / **lower** width — how much of the support
+                        surface the upper box covers. Deliberately not relative to
+                        the upper box: for the large-on-small case this exists to
+                        catch, a bigger ``area_ratio`` forces that fraction *down*,
+                        so a threshold on it contradicted the area threshold and the
+                        pair could never satisfy both at once.
     - ``support_ratio`` fraction of the upper box actually supported from below.
 
     Detectors call this instead of touching ``xyxy``, keeping rule 3 intact.
@@ -207,10 +243,10 @@ def stack_pair(ctx: "FrameContext", upper_id: int, lower_id: int) -> tuple[float
     upper = ctx.tracks[upper_id].xyxy
     lower = ctx.tracks[lower_id].xyxy
     lower_area = max(g.area(lower), 1e-6)
-    upper_width = max(g.width(upper), 1e-6)
+    lower_width = max(g.width(lower), 1e-6)
     return (
         g.area(upper) / lower_area,
-        g.horizontal_overlap(upper, lower) / upper_width,
+        g.horizontal_overlap(upper, lower) / lower_width,
         g.support_ratio(upper, lower),
     )
 
@@ -255,12 +291,22 @@ def motion_start_t(window: Sequence[TrackFeatures], *, min_speed: float) -> floa
     return start
 
 
-def travel_heights(window: Sequence[TrackFeatures], frame_h: int) -> tuple[float, float, float]:
-    """Return dx, dy, and total travel in object-height units."""
+def travel_heights(
+    window: Sequence[TrackFeatures], frame_w: int, frame_h: int
+) -> tuple[float, float, float]:
+    """Return dx, dy, and total travel in object-height units.
+
+    ``cx`` is normalised by frame *width* and ``cy`` by frame *height*, so each
+    needs its own axis to get back to pixels. Using the height for both — as
+    this did — shrank every horizontal distance by the frame's aspect ratio
+    (0.5625 on 16:9), which is why a 1.9-height drag measured 1.06 and never
+    crossed its threshold. ``FeatureExtractor`` already gets this right for
+    ``vx``/``vy``; this is the same conversion.
+    """
     if len(window) < 2:
         return 0.0, 0.0, 0.0
     first, last = window[0], window[-1]
     h_px = max((first.h_px + last.h_px) / 2.0, 1e-6)
-    dx = (last.cx - first.cx) * frame_h / h_px
+    dx = (last.cx - first.cx) * frame_w / h_px
     dy = (last.cy - first.cy) * frame_h / h_px
     return dx, dy, float((dx * dx + dy * dy) ** 0.5)

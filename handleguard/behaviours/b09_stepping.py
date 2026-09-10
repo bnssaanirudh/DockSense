@@ -5,7 +5,7 @@ from handleguard.behaviours.base import (
     FrameContext,
     confidence_from,
     foot_overlap,
-    sustained_seconds,
+    SustainedCondition,
 )
 
 
@@ -22,11 +22,17 @@ class SteppingDetector(BehaviourDetector):
     config_key = "stepping"
     requires_roles = {"product", "actor"}
 
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._held = SustainedCondition()
+
+    def reset(self) -> None:
+        self._held.reset()
+
     def update(self, ctx: FrameContext):
         events = []
         min_overlap = float(self.cfg["min_foot_overlap"])
         min_duration = float(self.cfg["min_duration_seconds"])
-        lookback = float(self.cfg["cooldown_seconds"])
 
         persons = ctx.persons()
         if not persons:
@@ -38,8 +44,7 @@ class SteppingDetector(BehaviourDetector):
                 if overlap < min_overlap:
                     continue
 
-                window = ctx.window(product_id, lookback)
-                span = sustained_seconds(window, lambda f: True)
+                span = self._held.observe((person_id, product_id), ctx.t)
                 if span < min_duration:
                     continue
 
@@ -51,7 +56,7 @@ class SteppingDetector(BehaviourDetector):
                     self.event(
                         ctx,
                         (person_id, product_id),
-                        start_t=window[0].t if window else ctx.t,
+                        start_t=ctx.t - span,
                         severity=severity,
                         confidence=confidence_from(margin, ctx.tracks[product_id].conf),
                         evidence={

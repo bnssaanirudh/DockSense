@@ -120,7 +120,8 @@ Added 10 Sep:
   reasoning layer is now **measured**, not asserted. First run scored F1 0.222 and
   exposed that **B01 never fired on an actual drop**: at 8 fps a falling carton
   outruns IoU association and the tracker loses it mid-fall. After the fixes,
-  **F1 0.667**, with `no_tracking` collapsing to **0.000**.
+  **F1 1.000**, with `no_tracking` collapsing to **0.000**. The score is not the
+  point — see the caveat in the claims ledger — the six bugs it exposed are.
 - `artifacts/evaluation/reasoning_eval.md` — results with the caveats attached.
 
 **140 tests pass.**
@@ -153,7 +154,7 @@ storage out of band; they are never committed (size + privacy).
 | Blocker | Severity | Owner | Note |
 |---|---|---|---|
 | **No real footage of drop / throw / stacking** | CRITICAL | unassigned | Public CCTV covers B07 + hard negatives only. B01/B02/B05/B06/B08 have no real video to fire on. **Decision taken 8 Sep: we record.** Full brief below — see *Recording brief*. ~35 min. |
-| **No behaviour has ever fired on real video** | HIGH | CV | Reasoning is now measured on rendered clips (F1 0.667) and detection on real CCTV, but the two have never met on real footage. Zones are still placeholders. |
+| **No behaviour has ever fired on real video** | HIGH | CV | Reasoning is now measured on rendered clips and detection on real CCTV, but the two have never met on real footage. Zones are still placeholders. |
 | **Lane C has no owner** | HIGH | team | Git history shows only two contributors. Lane C owns the demo, screenshots and slides — everything the judges actually see. Interim split recorded in Ownership; name the third person or accept the split. |
 
 ### Closed 8 Sep
@@ -347,6 +348,7 @@ previous list are complete.
 
 | When | Who | What |
 |---|---|---|
+| 10 Sep | Claude | **Three geometry bugs found by pushing the reasoning eval to completion; F1 0.667 → 1.000.** (1) `_ByteTrackResults.xywh` returned top-left `(x,y,w,h)` where BYTETracker expects centre-based, so **every tracked box sat half its own size up and left of reality** — invisible to relative measures like fall distance, fatal to floor gap, zones and support geometry. (2) `travel_heights` scaled *both* axes by frame height though `cx` is width-normalised, shrinking every horizontal distance by 0.5625 on 16:9 — a 1.9-height drag measured 1.06 and B03 never fired. (3) Five static detectors gated on `sustained_seconds(window, lambda f: True)`, which measures **track age, not how long the condition held**; replaced with `SustainedCondition`. Also: B05's overlap threshold was unsatisfiable against its own area threshold (measured on the upper box, now the support below); suppression was a frame late (`recent_events` refreshed per detector, registry reordered so the specific detector runs first); and the renderer's stacking clips contradicted their own labels — one box started *below* its target and never moved. **None of this was caught by the 140 unit tests, because those tests fed one frame.** |
 | 10 Sep | Claude | **Reasoning layer measured for the first time — and it was broken.** Built `scripts/eval_reasoning.py` (renderer now emits exact per-frame boxes, so reasoning is measured with perception held perfect). First run: **F1 0.222**. Root cause: a falling carton moves ~70 px/frame at 8 fps while being ~80 px tall, so ByteTrack lost the track mid-fall and **B01 never fired on an actual drop**. Fixes: inference_fps 8→24, match_thresh 0.8→0.95, drop velocity threshold 1.5→4.0 (controlled lowering peaks at 1.8, free fall at 13.6), horizontal share computed over the window instead of one frame, event start_t from motion onset instead of window start, and `settled()` exposing in-flight events so B04's suppression actually works. **F1 0.222 → 0.667.** Ablation: `no_tracking` collapses to 0.000. |
 | 9 Sep | Claude | **Full audit — file-wise, flow-wise, backend, frontend, live browser.** Fixed: empty `privacy/` package despite three docs claiming face blurring (now implemented, wired into clip writer, tested on stored pixels); missing `metrics/__init__.py`; `seed_fake_incidents.py` ignoring `--help`; README stale test count and undocumented `PATCH /review`; STATE title still saying HandleGuard. Verified live: all 7 endpoints, path traversal blocked (404), invalid review status (422), console renders, filters work, review persists, assistant guardrail holds in the UI, zero console errors. Pruned 85 lines of stale task list. |
 | 8 Sep | Claude | **All 12 behaviours implemented (B04/B10/B11 completed), ablation flags wired, temporal event graph added, README written.** 123 tests pass. B04 defers to B01/B02 and B10 goes silent when equipment is visible, so the weak three don't generate noise they can't justify. |
@@ -447,8 +449,8 @@ downscaled to 1280×720, `imgsz=640`, `inference_fps=8`.
 | API surface | ✅ 9 Sep | live curl against all routes | 7/7 respond; traversal blocked (404), bad review status rejected (422) |
 | Console | ✅ 9 Sep | browser at `/` | renders, filters, sort, review persists, assistant guardrail holds, **zero console errors** |
 | Evidence privacy | ✅ 9 Sep | `tests/unit/test_privacy.py` | head region blurred **in the written clip**; body preserved |
-| **Reasoning-layer precision / recall / F1** | ✅ 10 Sep | `artifacts/evaluation/reasoning_eval.md`, 5 positives + 4 hard negatives, exact perception injected | **0.750 / 0.600 / 0.667** — measures reasoning only, and **thresholds were tuned on this set, so it is NOT held out** |
-| **Ablation: no_tracking** | ✅ 10 Sep | same | **F1 0.667 → 0.000.** Without persistent identity nothing fires at all |
+| **Reasoning-layer precision / recall / F1** | ✅ 10 Sep | `artifacts/evaluation/reasoning_eval.md`, 5 positives + 4 hard negatives, exact perception injected | **1.000 / 1.000 / 1.000** — say "the logic is self-consistent", never "accuracy". Nine clips, and thresholds *and detector rules* were changed in response to failures on these exact clips, so the measured thing and the optimised thing share a generating function. Quote the `no_tracking` row instead |
+| **Ablation: no_tracking** | ✅ 10 Sep | same | **F1 1.000 → 0.000.** Without persistent identity nothing fires at all. The one row that is hard to game — use this, not the baseline |
 | Ablation: no_smoothing, no_event_graph | ✅ 10 Sep | same | **no delta.** Reported, not hidden — see the report for why neither is a win |
 | Per-behaviour P/R on **real** footage | ❌ **NOT MEASURED** | — | **Blocked on footage. Do not quote a number.** |
 | Ablation deltas on **real** video | ❌ **NOT MEASURED** | harness ready | Blocked on footage |

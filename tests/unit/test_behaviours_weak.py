@@ -11,6 +11,8 @@ likely to break the demo:
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import handleguard.config as config
 from handleguard.behaviours.b04_rough_handling import RoughHandlingDetector
 from handleguard.behaviours.b10_manual_heavy_handling import ManualHeavyHandlingDetector
@@ -89,7 +91,14 @@ def test_b10_silent_when_equipment_is_present():
 
 
 def test_b10_fires_when_no_equipment_in_frame():
-    events = _det(ManualHeavyHandlingDetector).update(_handling_ctx(False))
+    detector = _det(ManualHeavyHandlingDetector)
+    ctx = _handling_ctx(False)
+    # B10 also requires the handling to persist, not just to exist for a frame.
+    events = []
+    t = ctx.t
+    while t <= ctx.t + 3.0:
+        events = detector.update(replace(ctx, t=t))
+        t += 0.1
     assert len(events) == 1
     ev = events[0]
     assert ev.behaviour_id == "B10"

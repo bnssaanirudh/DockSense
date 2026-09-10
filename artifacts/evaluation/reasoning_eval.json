@@ -13,52 +13,52 @@
       "label": "baseline",
       "per_clip": {
         "carry.mp4": 0,
-        "drag.mp4": 0,
+        "drag.mp4": 1,
         "drop.mp4": 1,
         "gentle_place.mp4": 0,
         "good_stack.mp4": 0,
-        "improper_stack.mp4": 0,
+        "improper_stack.mp4": 1,
         "static.mp4": 0,
-        "throw.mp4": 2,
+        "throw.mp4": 1,
         "unstable_stack.mp4": 1
       },
       "iou_threshold": 0.3,
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.8491
         },
         "drop": {
           "behaviour": "drop",
           "true_positive": 1,
-          "false_positive": 1,
+          "false_positive": 0,
           "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 2,
-          "precision": 0.5,
+          "n_pred": 1,
+          "precision": 1.0,
           "recall": 1.0,
-          "f1": 0.6667,
+          "f1": 1.0,
           "mean_temporal_iou": 0.7647
         },
         "improper_stack": {
           "behaviour": "improper_stack",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.9175
         },
         "throw": {
           "behaviour": "throw",
@@ -82,20 +82,20 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.5933
+          "mean_temporal_iou": 0.9368
         }
       },
       "micro": {
         "behaviour": "micro",
-        "true_positive": 3,
-        "false_positive": 1,
-        "false_negative": 2,
+        "true_positive": 5,
+        "false_positive": 0,
+        "false_negative": 0,
         "n_gt": 5,
-        "n_pred": 4,
-        "precision": 0.75,
-        "recall": 0.6,
-        "f1": 0.6667,
-        "mean_temporal_iou": 0.6611
+        "n_pred": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "mean_temporal_iou": 0.8187
       }
     },
     "no_tracking": {
@@ -191,52 +191,52 @@
       "label": "no_smoothing",
       "per_clip": {
         "carry.mp4": 0,
-        "drag.mp4": 0,
+        "drag.mp4": 1,
         "drop.mp4": 1,
         "gentle_place.mp4": 0,
         "good_stack.mp4": 0,
-        "improper_stack.mp4": 0,
+        "improper_stack.mp4": 1,
         "static.mp4": 0,
-        "throw.mp4": 2,
+        "throw.mp4": 1,
         "unstable_stack.mp4": 1
       },
       "iou_threshold": 0.3,
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.8491
         },
         "drop": {
           "behaviour": "drop",
           "true_positive": 1,
-          "false_positive": 1,
+          "false_positive": 0,
           "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 2,
-          "precision": 0.5,
+          "n_pred": 1,
+          "precision": 1.0,
           "recall": 1.0,
-          "f1": 0.6667,
+          "f1": 1.0,
           "mean_temporal_iou": 0.7647
         },
         "improper_stack": {
           "behaviour": "improper_stack",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.9175
         },
         "throw": {
           "behaviour": "throw",
@@ -260,72 +260,72 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.5933
+          "mean_temporal_iou": 0.9368
         }
       },
       "micro": {
         "behaviour": "micro",
-        "true_positive": 3,
-        "false_positive": 1,
-        "false_negative": 2,
+        "true_positive": 5,
+        "false_positive": 0,
+        "false_negative": 0,
         "n_gt": 5,
-        "n_pred": 4,
-        "precision": 0.75,
-        "recall": 0.6,
-        "f1": 0.6667,
-        "mean_temporal_iou": 0.6194
+        "n_pred": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "mean_temporal_iou": 0.7937
       }
     },
     "no_event_graph": {
       "label": "no_event_graph",
       "per_clip": {
         "carry.mp4": 0,
-        "drag.mp4": 0,
+        "drag.mp4": 1,
         "drop.mp4": 1,
         "gentle_place.mp4": 0,
         "good_stack.mp4": 0,
-        "improper_stack.mp4": 0,
+        "improper_stack.mp4": 1,
         "static.mp4": 0,
-        "throw.mp4": 2,
+        "throw.mp4": 1,
         "unstable_stack.mp4": 1
       },
       "iou_threshold": 0.3,
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.8491
         },
         "drop": {
           "behaviour": "drop",
           "true_positive": 1,
-          "false_positive": 1,
+          "false_positive": 0,
           "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 2,
-          "precision": 0.5,
+          "n_pred": 1,
+          "precision": 1.0,
           "recall": 1.0,
-          "f1": 0.6667,
+          "f1": 1.0,
           "mean_temporal_iou": 0.7647
         },
         "improper_stack": {
           "behaviour": "improper_stack",
-          "true_positive": 0,
+          "true_positive": 1,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 1,
-          "n_pred": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "mean_temporal_iou": 0.0
+          "n_pred": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.9175
         },
         "throw": {
           "behaviour": "throw",
@@ -349,20 +349,20 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.5933
+          "mean_temporal_iou": 0.9368
         }
       },
       "micro": {
         "behaviour": "micro",
-        "true_positive": 3,
-        "false_positive": 1,
-        "false_negative": 2,
+        "true_positive": 5,
+        "false_positive": 0,
+        "false_negative": 0,
         "n_gt": 5,
-        "n_pred": 4,
-        "precision": 0.75,
-        "recall": 0.6,
-        "f1": 0.6667,
-        "mean_temporal_iou": 0.6611
+        "n_pred": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "mean_temporal_iou": 0.8187
       }
     }
   }

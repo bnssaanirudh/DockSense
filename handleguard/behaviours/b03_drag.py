@@ -16,7 +16,7 @@ class DragDetector(BehaviourDetector):
             window = ctx.window(track_id, duration)
             if len(window) < 2:
                 continue
-            dx, _, distance = travel_heights(window, ctx.fh)
+            dx, _, distance = travel_heights(window, ctx.fw, ctx.fh)
             vertical_variation = max(f.cy for f in window) - min(f.cy for f in window)
             vertical_heights = vertical_variation * ctx.fh / max(feat.h_px, 1e-6)
             floor_gaps = [f.floor_gap for f in window if f.floor_gap is not None]

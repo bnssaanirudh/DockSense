@@ -5,7 +5,7 @@ from handleguard.behaviours.base import (
     FrameContext,
     confidence_from,
     supported_fraction,
-    sustained_seconds,
+    SustainedCondition,
 )
 
 
@@ -21,11 +21,17 @@ class PalletOverhangDetector(BehaviourDetector):
     config_key = "pallet_overhang"
     requires_roles = {"product", "support"}
 
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._held = SustainedCondition()
+
+    def reset(self) -> None:
+        self._held.reset()
+
     def update(self, ctx: FrameContext):
         events = []
         min_support = float(self.cfg["min_support_fraction"])
         min_duration = float(self.cfg["min_duration_seconds"])
-        lookback = float(self.cfg["cooldown_seconds"])
 
         pallets = ctx.by_role("support")
         if not pallets:
@@ -38,8 +44,7 @@ class PalletOverhangDetector(BehaviourDetector):
             if fraction <= 0.0 or fraction >= min_support:
                 continue
 
-            window = ctx.window(product_id, lookback)
-            span = sustained_seconds(window, lambda f: True)
+            span = self._held.observe((product_id, pallet_id), ctx.t)
             if span < min_duration:
                 continue
 
@@ -50,7 +55,7 @@ class PalletOverhangDetector(BehaviourDetector):
                 self.event(
                     ctx,
                     (product_id, pallet_id),
-                    start_t=window[0].t if window else ctx.t,
+                    start_t=ctx.t - span,
                     severity=severity,
                     confidence=confidence_from(margin, ctx.tracks[product_id].conf),
                     evidence={

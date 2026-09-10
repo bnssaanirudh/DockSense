@@ -243,10 +243,20 @@ class _ByteTrackResults:
 
     @property
     def xywh(self) -> np.ndarray:
+        """Boxes as (centre_x, centre_y, w, h).
+
+        BYTETracker feeds this straight into ``xywh2ltwh``, so it must be
+        centre-based. Returning top-left here instead shifted every tracked box
+        up and left by half its own size — invisible to relative measures like
+        fall distance, but it silently broke every absolute one: floor gap, zone
+        containment, and support geometry all read a box that was not there.
+        """
         if len(self.xyxy) == 0:
             return np.empty((0, 4), dtype=np.float32)
         x1, y1, x2, y2 = self.xyxy[:, 0], self.xyxy[:, 1], self.xyxy[:, 2], self.xyxy[:, 3]
-        return np.stack((x1, y1, x2 - x1, y2 - y1), axis=1).astype(np.float32)
+        return np.stack(
+            ((x1 + x2) / 2.0, (y1 + y2) / 2.0, x2 - x1, y2 - y1), axis=1
+        ).astype(np.float32)
 
     def role_for_class_idx(self, class_idx: int) -> str:
         return self._roles_by_idx.get(class_idx, "unknown")

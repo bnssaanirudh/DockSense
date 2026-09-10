@@ -5,7 +5,7 @@ from handleguard.behaviours.base import (
     FrameContext,
     confidence_from,
     stack_pair,
-    sustained_seconds,
+    SustainedCondition,
 )
 
 
@@ -20,11 +20,29 @@ class UnstableStackDetector(BehaviourDetector):
     name = "unstable_stack"
     config_key = "unstable_stack"
 
+    # A large box on a small one necessarily has a poor support ratio, so this
+    # detector fires on every improper stack as well. Both are true, but they
+    # describe one physical configuration, and B05 names the cause while this
+    # names a symptom of it. Report the cause once, as with B04 deferring to
+    # B01/B02.
+    _SUPERSEDED_BY = {"B05"}
+
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._held = SustainedCondition()
+
+    def reset(self) -> None:
+        self._held.reset()
+
     def update(self, ctx: FrameContext):
         events = []
+        claimed = {
+            tuple(sorted(ev.track_ids))
+            for ev in ctx.recent_events
+            if ev.behaviour_id in self._SUPERSEDED_BY
+        }
         max_support = float(self.cfg["max_support_ratio"])
         min_duration = float(self.cfg["min_duration_seconds"])
-        lookback = float(self.cfg["cooldown_seconds"])
 
         for upper_id in ctx.products():
             # Low overlap threshold on purpose: a badly overhanging box is the
@@ -39,9 +57,10 @@ class UnstableStackDetector(BehaviourDetector):
             support_ratio, lower_id = max(ratios)
             if support_ratio >= max_support:
                 continue
+            if tuple(sorted((upper_id, lower_id))) in claimed:
+                continue
 
-            window = ctx.window(upper_id, lookback)
-            span = sustained_seconds(window, lambda f: True)
+            span = self._held.observe((upper_id, lower_id), ctx.t)
             if span < min_duration:
                 continue
 
@@ -52,7 +71,7 @@ class UnstableStackDetector(BehaviourDetector):
                 self.event(
                     ctx,
                     (upper_id, lower_id),
-                    start_t=window[0].t if window else ctx.t,
+                    start_t=ctx.t - span,
                     severity=severity,
                     confidence=confidence_from(margin, ctx.tracks[upper_id].conf),
                     evidence={

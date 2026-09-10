@@ -5,7 +5,7 @@ from handleguard.behaviours.base import (
     FrameContext,
     confidence_from,
     stack_pair,
-    sustained_seconds,
+    SustainedCondition,
 )
 
 
@@ -21,12 +21,18 @@ class ImproperStackDetector(BehaviourDetector):
     name = "improper_stack"
     config_key = "improper_stack"
 
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._held = SustainedCondition()
+
+    def reset(self) -> None:
+        self._held.reset()
+
     def update(self, ctx: FrameContext):
         events = []
         min_area_ratio = float(self.cfg["min_area_ratio"])
         min_overlap = float(self.cfg["min_overlap_x"])
         min_duration = float(self.cfg["min_duration_seconds"])
-        lookback = float(self.cfg["cooldown_seconds"])
 
         for upper_id in ctx.products():
             for lower_id in ctx.below(upper_id):
@@ -36,8 +42,7 @@ class ImproperStackDetector(BehaviourDetector):
                 if area_ratio < min_area_ratio or overlap_x < min_overlap:
                     continue
 
-                window = ctx.window(upper_id, lookback)
-                span = sustained_seconds(window, lambda f: True)
+                span = self._held.observe((upper_id, lower_id), ctx.t)
                 if span < min_duration:
                     continue
 
@@ -49,7 +54,7 @@ class ImproperStackDetector(BehaviourDetector):
                     self.event(
                         ctx,
                         (upper_id, lower_id),
-                        start_t=window[0].t if window else ctx.t,
+                        start_t=ctx.t - span,
                         severity=severity,
                         confidence=confidence_from(margin, ctx.tracks[upper_id].conf),
                         evidence={

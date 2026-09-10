@@ -20,7 +20,7 @@ class ThrowDetector(BehaviourDetector):
         for track_id in ctx.products():
             feat = ctx.f(track_id)
             window = ctx.window(track_id, lookback)
-            dx, _, distance = travel_heights(window, ctx.fh)
+            dx, _, distance = travel_heights(window, ctx.fw, ctx.fh)
             unsupported = [f for f in window if not f.held_by_person and (f.floor_gap is None or f.floor_gap > 0.1)]
             margin = min(
                 feat.speed / float(self.cfg["min_speed"]),

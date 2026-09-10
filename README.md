@@ -157,23 +157,34 @@ injected as perception (5 positives, 4 hard negatives, temporal IoU 0.3):
 
 | Variant | Precision | Recall | F1 |
 |---|---:|---:|---:|
-| baseline | 0.750 | 0.600 | **0.667** |
+| baseline | 1.000 | 1.000 | **1.000** |
 | `no_tracking` | 0.000 | 0.000 | **0.000** |
-| `no_smoothing` | 0.750 | 0.600 | 0.667 |
-| `no_event_graph` | 0.750 | 0.600 | 0.667 |
+| `no_smoothing` | 1.000 | 1.000 | 1.000 |
+| `no_event_graph` | 1.000 | 1.000 | 1.000 |
 
-**`no_tracking` collapsing to zero is the evidence for the central claim**: remove
-persistent identity and nothing temporal accumulates, so no behaviour fires at all.
-The system detects sequences, not frames.
+**Read the 1.000 as "the logic is self-consistent", not as accuracy.** Nine clips,
+and several thresholds and detector rules were changed in response to failures on
+these exact clips — the thing measured and the thing optimised share a generating
+function. That is an oracle advantage and we are naming it rather than quoting the
+number bare.
 
-`no_smoothing` and `no_event_graph` show **no delta**, and that is reported rather
-than hidden. These clips have zero detector jitter for smoothing to remove, and the
-event graph feeds the *risk score* rather than event detection, so event F1 is the
-wrong instrument for it. A flag that changes nothing is worth knowing about.
+The row that is hard to game is **`no_tracking` collapsing to zero**: remove
+persistent identity and nothing fires at all, because every behaviour here is
+defined over a sequence. That is the evidence for the central claim — the system
+detects sequences, not frames.
 
-Two caveats that travel with these numbers: this measures **reasoning only**
-(perception is held perfect by construction), and the **thresholds were tuned on
-this set, so it is not held out**. Full report: `artifacts/evaluation/reasoning_eval.md`.
+The run earned its keep by finding bugs, not by scoring: tracked boxes were offset
+by half their own size (a top-left/centre mix-up feeding ByteTrack), horizontal
+distances were scaled by frame height on both axes, and five detectors' "sustained
+for N seconds" gate was measuring track age rather than how long the condition
+held. All three were invisible to the 140 unit tests.
+
+`no_smoothing` and `no_event_graph` show **no delta**, reported rather than hidden.
+These clips have zero detector jitter for smoothing to remove, and the event graph
+feeds the *risk score* rather than event detection, so event F1 is the wrong
+instrument for it. A flag that changes nothing is worth knowing about.
+
+Full report: `artifacts/evaluation/reasoning_eval.md`.
 
 **What is still not measured.** Per-behaviour precision/recall on *real* footage.
 Ground-truth video of drops, throws and stacking has not been recorded, so no

@@ -325,11 +325,20 @@ def scenario_carry(dt: float):
     return sc, step
 
 
+# Placement descent: 0.4 m/s = 80 px/s starting at t=1.0, so the box must start
+# 80 px clear of its target to land at t=2.0 — the moment the ground-truth label
+# says the stack exists. It started 300 px clear, which takes 3.75 s: the stack
+# was only real for the last 0.25 s of a 5 s clip while the label claimed 3 s of
+# it. The label was right about the intent and the physics disagreed, so the
+# physics is what moved.
+PLACEMENT_RISE = 80.0  # px above the target surface at t=0 (y grows downward)
+
+
 def scenario_improper_stack(dt: float):
     """Large carton placed on top of a small one."""
     sc = Scenario("improper_stack", "improper_stack", 5.0, "large on small")
     small = _carton(600, FLOOR_Y, w=60, h=60, tone=1)
-    large = Box(x=560, y=FLOOR_Y - 60 - 300, w=140, h=110, tone=2)
+    large = Box(x=560, y=(small.y - 110) - PLACEMENT_RISE, w=140, h=110, tone=2)
 
     def step(t: float, frame: np.ndarray):
         target = small.y - large.h
@@ -346,7 +355,7 @@ def scenario_good_stack(dt: float):
     """HARD NEGATIVE. Small on large, well centred. Must stay silent."""
     sc = Scenario("good_stack", None, 5.0, "small on large, correct order")
     large = _carton(560, FLOOR_Y, w=140, h=110, tone=2)
-    small = Box(x=600, y=FLOOR_Y - 110 - 300, w=60, h=60, tone=1)
+    small = Box(x=600, y=(large.y - 60) - PLACEMENT_RISE, w=60, h=60, tone=1)
 
     def step(t: float, frame: np.ndarray):
         target = large.y - small.h
@@ -362,7 +371,7 @@ def scenario_unstable_stack(dt: float):
     """Upper carton overhangs its support by well over half its width."""
     sc = Scenario("unstable_stack", "unstable_stack", 5.0, "support ratio ~0.3")
     lower = _carton(560, FLOOR_Y, w=140, h=110, tone=2)
-    upper = Box(x=560 + 100, y=FLOOR_Y - 110 - 300, w=130, h=80, tone=0)
+    upper = Box(x=560 + 100, y=(lower.y - 80) - PLACEMENT_RISE, w=130, h=80, tone=0)
 
     def step(t: float, frame: np.ndarray):
         target = lower.y - upper.h

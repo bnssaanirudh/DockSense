@@ -171,7 +171,10 @@ def run(
         )
         with _stage(timings, "behaviours"):
             for behaviour in detectors:
-                for event in behaviour.update(ctx):
+                # Refresh per detector, not per frame: suppression is useless if
+                # the event it defers to only becomes visible on the next frame,
+                # because that one frame still becomes a duplicate incident.
+                for event in behaviour.update(replace(ctx, recent_events=deduper.settled())):
                     deduper.push(event)
 
     incidents = []

@@ -16,9 +16,14 @@ from handleguard.behaviours.b10_manual_heavy_handling import ManualHeavyHandling
 from handleguard.behaviours.b11_unsafe_sequence import UnsafeSequenceDetector
 from handleguard.behaviours.b12_unsafe_surface import UnsafeSurfaceDetector
 
+# Order matters: a detector that supersedes another must run BEFORE it, so the
+# more specific reading is already on the frame's event list when the general
+# one decides whether to stay quiet. ThrowDetector before DropDetector (a thrown
+# box also falls); ImproperStackDetector before UnstableStackDetector (a large
+# box on a small one is necessarily poorly supported).
 DETECTOR_CLASSES: tuple[type[BehaviourDetector], ...] = (
-    DropDetector,
     ThrowDetector,
+    DropDetector,
     DragDetector,
     RoughHandlingDetector,
     ImproperStackDetector,

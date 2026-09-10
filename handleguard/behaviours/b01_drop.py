@@ -14,13 +14,26 @@ class DropDetector(BehaviourDetector):
     name = "drop"
     config_key = "drop"
 
+    # A thrown box also falls, so both detectors fire on the same entity when
+    # the launch angle is steep. B02 is the more specific reading and runs
+    # first; reporting both would put one event in the queue twice.
+    _SUPERSEDED_BY = {"B02"}
+
     def update(self, ctx: FrameContext):
         events = []
         lookback = float(self.cfg["cooldown_seconds"])
+        claimed = {
+            tid
+            for ev in ctx.recent_events
+            if ev.behaviour_id in self._SUPERSEDED_BY
+            for tid in ev.track_ids
+        }
         for track_id in ctx.products():
+            if track_id in claimed:
+                continue
             feat = ctx.f(track_id)
             window = ctx.window(track_id, lookback)
-            dx, dy, _ = travel_heights(window, ctx.fh)
+            dx, dy, _ = travel_heights(window, ctx.fw, ctx.fh)
             prev = window[-2] if len(window) >= 2 else feat
             decel = max(prev.vy - feat.vy, 0.0)
             margin = min(
