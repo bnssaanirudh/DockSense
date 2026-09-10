@@ -49,15 +49,20 @@ footage closes that gap.
 
 | Variant | tune (n=9) | **heldout (n=27)** |
 |---|---:|---:|
-| baseline | 1.000 | **0.875** |
+| baseline | 1.000 | **0.933** |
 | `no_tracking` | 0.000 | **0.000** |
-| `no_smoothing` | 1.000 | **0.812** |
-| `no_event_graph` | 1.000 | 0.875 |
+| `no_smoothing` | 1.000 | **0.867** |
+| `no_event_graph` | 1.000 | 0.933 |
 
-Held-out baseline: precision **0.824**, recall **0.933**, mean temporal IoU 0.77,
-over 15 labelled events and 12 hard negatives.
+Held-out baseline: precision **0.933**, recall **0.933**, over 15 labelled events
+and 12 hard negatives.
 
-**Quote the 0.875, not the 1.000.** The 0.125 gap between them is the honest
+**Scored twice, and that matters.** The first run read 0.875. The code then
+changed in response to *real* session-1 footage — not to this split — and the
+second run reads 0.933. Both are stated. A set scored twice is not strictly held
+out any more, and the next genuinely clean number will have to come from footage.
+
+**Quote the 0.933, not the 1.000.** The gap between them is the honest
 measure of how much the tune number was inflated by having been tuned on.
 
 Per behaviour, held out:
@@ -76,7 +81,7 @@ Per behaviour, held out:
 fires at all, because every behaviour here is defined over a sequence. This is
 the row that is hard to game and the direct evidence for the central claim.
 
-**`no_smoothing` → 0.875 → 0.812, but only on the held-out split.** On the tune
+**`no_smoothing` → 0.933 → 0.867, but only on the held-out split.** On the tune
 split it showed no delta at all, and the earlier report said so honestly while
 noting the clips carried no jitter for smoothing to remove. Varying carton size
 and speed introduced exactly that jitter, and the smoothing window now earns its

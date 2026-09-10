@@ -162,7 +162,9 @@ def run(
             dt=dt,
             fw=frame.w,
             fh=frame.h,
-            tracks={track.id: track for track in tracks},
+            # Only tracks the feature stage vouched for: a track too young for
+            # a trustworthy velocity is also too young to reason about.
+            tracks={track.id: track for track in tracks if track.id in feats},
             feats=feats,
             history=history,
             zones=config.zones() if flags.use_zones else {"cameras": {}},

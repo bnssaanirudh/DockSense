@@ -19,8 +19,13 @@ class DragDetector(BehaviourDetector):
             dx, _, distance = travel_heights(window, ctx.fw, ctx.fh)
             vertical_variation = max(f.cy for f in window) - min(f.cy for f in window)
             vertical_heights = vertical_variation * ctx.fh / max(feat.h_px, 1e-6)
-            floor_gaps = [f.floor_gap for f in window if f.floor_gap is not None]
-            near_floor = bool(floor_gaps) and max(floor_gaps) <= float(self.cfg["floor_proximity"])
+            floor_gaps = sorted(f.floor_gap for f in window if f.floor_gap is not None)
+            # Median, not max. The floor reference comes from the nearest person's
+            # feet, and person detection flickers; requiring EVERY frame in the
+            # window to be near the floor makes the whole test hostage to the one
+            # frame where the reference person was missed.
+            median_gap = floor_gaps[len(floor_gaps) // 2] if floor_gaps else None
+            near_floor = median_gap is not None and median_gap <= float(self.cfg["floor_proximity"])
             margin = min(
                 abs(dx) / float(self.cfg["min_distance_heights"]),
                 float(self.cfg["max_vertical_variation"]) / max(vertical_heights, 1e-6),
@@ -41,7 +46,7 @@ class DragDetector(BehaviourDetector):
                         evidence={
                             "horizontal_travel_heights": round(abs(dx), 3),
                             "vertical_variation_heights": round(vertical_heights, 3),
-                            "max_floor_gap": round(max(floor_gaps), 3) if floor_gaps else None,
+                            "median_floor_gap": round(median_gap, 3) if median_gap is not None else None,
                         },
                         zone=feat.zone,
                     )

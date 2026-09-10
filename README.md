@@ -168,24 +168,29 @@ geometry is replayed in), so this measures reasoning alone. Temporal IoU 0.3.
 
 | Variant | tune (n=9) | **heldout (n=27)** |
 |---|---:|---:|
-| baseline | 1.000 | **0.875** |
+| baseline | 1.000 | **0.933** |
 | `no_tracking` | 0.000 | **0.000** |
-| `no_smoothing` | 1.000 | **0.812** |
-| `no_event_graph` | 1.000 | 0.875 |
+| `no_smoothing` | 1.000 | **0.867** |
+| `no_event_graph` | 1.000 | 0.933 |
 
-Held-out baseline: precision **0.824**, recall **0.933**, over 15 labelled events
+Held-out baseline: precision **0.933**, recall **0.933**, over 15 labelled events
 and 12 hard negatives.
 
-**The number to quote is 0.875.** The tune split reads 1.000 because thresholds
+**This split has now been scored twice.** It read 0.875 when first run; the code
+then changed in response to *real* footage — not to this split — and it now reads
+0.933. Both numbers are stated rather than only the better one, because a set
+scored twice is no longer strictly held out.
+
+**The number to quote is 0.933, and it is second-hand.** The tune split reads 1.000 because thresholds
 and detector rules were changed in response to failures on those nine specific
-clips; the 0.125 gap is the honest measure of how much that inflated it. Varying
+clips; the gap between the two columns is the honest measure of how much that inflated it. Varying
 carton size is the pointed test — every threshold is in object-heights, so a 1.6×
 size change should be invisible, and any threshold secretly living in pixels
 shows up here.
 
 **`no_tracking` collapsing to zero on both splits** is the row that is hard to
 game: remove persistent identity and nothing fires at all, because every
-behaviour is defined over a sequence. **`no_smoothing` costs 0.063 on the
+behaviour is defined over a sequence. **`no_smoothing` costs 0.066 on the
 held-out split and nothing on the tune split** — the fixed clips carried no
 jitter for smoothing to remove, which is itself a warning about what a single
 fixed set hides. `no_event_graph` shows no delta; the graph feeds the *risk
@@ -204,9 +209,31 @@ footage closes that gap.
 
 Full report: `artifacts/evaluation/reasoning_eval.md`.
 
-**What is still not measured.** Per-behaviour precision/recall on *real* footage.
-Ground-truth video of drops, throws and stacking has not been recorded, so no
-field accuracy number should appear anywhere.
+**Real footage — the number that matters, and it is a bad one.** Session 1 is
+seven clips (~3 min) of genuine loading-bay operations. Clip-level check: did the
+system report the behaviour the recorder said each clip contains?
+
+**1 of 9 expected behaviours reported.**
+
+The system is not silent — it produced incidents on 5 of 7 clips at 2–24 alarms
+per minute — but mostly `rough_handling` and `manual_heavy_handling`, the two
+loosest detectors, rather than the specific behaviour each clip shows.
+
+This is reported first because everything above it was measured on rendered clips
+that could not fail in these ways. Real footage exposed four defects in one
+afternoon: a config knob (`min_track_age_frames`) that was declared and read by
+nothing; a single horizontal floor line that cannot describe a perspective view
+(which is why drag never fired on any of four dragging clips); a `held_by_person`
+test that was true in **100%** of frames on a carton being thrown, making B02
+unable to fire by construction; and — measured, not assumed — the fact that
+**throw and drag are not separable on this footage at all**, because vertical
+acceleration has a p99 of ~48 object-heights/s² against a free-fall value of ~20.
+The first three are fixed. The fourth is not fixable by tuning.
+
+**Precision on real footage is unmeasurable**, and will stay that way until one
+clip of ordinary handling exists. Every clip in session 1 is a positive, so a
+detector that fired constantly would score perfectly. Full report:
+`artifacts/evaluation/real_footage.md`.
 
 **Why the public dataset does not fill that gap.** The Unsafe-Net footage is a
 metal-press factory, and its *Safe Walkway Violation* label means *a person off a

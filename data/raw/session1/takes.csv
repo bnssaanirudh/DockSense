@@ -1,0 +1,10 @@
+filename,session,behaviour,approx_start_s,approx_end_s,notes
+roll_drop_carton.mp4,S1-tune,drop,,,"annotator caption: ""Rolling and dropping the carton"". Carton tipped end-over-end along a pallet, then set down. Span not logged at record time"
+throw_seating_cartons.mp4,S1-tune,throw,,,"annotator caption: ""THROWING SEATING CARTONS WHILE LOADING"". Several short tosses into a truck"
+kd_drag_heavy_on_top.mp4,S1-tune,drag,,,"filename: KD packets dragged, heavy box kept on other packets. Also improper_stack"
+kd_drag_heavy_on_top.mp4,S1-tune,improper_stack,,,heavy box placed on flat-packed panels
+roll_drag_wet_floor.mp4,S1-heldout,drag,,,"annotator caption: ""rolling carton"", on a wet floor. Also unsafe_surface, but no zone polygon exists for this camera"
+throw_mattresses.mp4,S1-heldout,throw,,,"annotator caption: ""Throwing mattresses on top of each other"""
+dock_drag_cupboard.mp4,S1-heldout,drag,,,"annotator caption: ""Uneven dock level due to absence of a leveler"". Cupboard dragged over the gap"
+stepping_vertical_heavy.mp4,S1-heldout,stepping,,,"annotator caption: ""dropped heavy carton on another carton"". Also vertical product laid flat and heavy product on top"
+stepping_vertical_heavy.mp4,S1-heldout,improper_stack,,,heavy product placed on top

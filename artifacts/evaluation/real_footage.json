@@ -1,0 +1,141 @@
+{
+  "dataset": "session 1, real warehouse CCTV re-recorded off a playback screen",
+  "measures": "clip-level behaviour presence only",
+  "does_not_measure": "precision (no hard-negative clips were recorded) and timing (takes.csv carries no start/end times)",
+  "clips": [
+    {
+      "clip": "dock_drag_cupboard",
+      "split": "S1-heldout",
+      "expected": [
+        "drag"
+      ],
+      "fired": [
+        "drag",
+        "rough_handling"
+      ],
+      "hits": [
+        "drag"
+      ],
+      "misses": [],
+      "incidents": 3,
+      "alarms_per_minute": 5.8
+    },
+    {
+      "clip": "kd_drag_heavy_on_top",
+      "split": "S1-tune",
+      "expected": [
+        "drag",
+        "improper_stack"
+      ],
+      "fired": [
+        "manual_heavy_handling",
+        "rough_handling",
+        "stepping",
+        "throw"
+      ],
+      "hits": [],
+      "misses": [
+        "drag",
+        "improper_stack"
+      ],
+      "incidents": 8,
+      "alarms_per_minute": 14.2
+    },
+    {
+      "clip": "roll_drag_wet_floor",
+      "split": "S1-heldout",
+      "expected": [
+        "drag"
+      ],
+      "fired": [],
+      "hits": [],
+      "misses": [
+        "drag"
+      ],
+      "incidents": 0,
+      "alarms_per_minute": 0.0
+    },
+    {
+      "clip": "roll_drop_carton",
+      "split": "S1-tune",
+      "expected": [
+        "drop"
+      ],
+      "fired": [
+        "manual_heavy_handling",
+        "rough_handling"
+      ],
+      "hits": [],
+      "misses": [
+        "drop"
+      ],
+      "incidents": 3,
+      "alarms_per_minute": 19.1
+    },
+    {
+      "clip": "stepping_vertical_heavy",
+      "split": "S1-heldout",
+      "expected": [
+        "stepping",
+        "improper_stack"
+      ],
+      "fired": [
+        "drag",
+        "manual_heavy_handling"
+      ],
+      "hits": [],
+      "misses": [
+        "stepping",
+        "improper_stack"
+      ],
+      "incidents": 2,
+      "alarms_per_minute": 2.4
+    },
+    {
+      "clip": "throw_mattresses",
+      "split": "S1-heldout",
+      "expected": [
+        "throw"
+      ],
+      "fired": [],
+      "hits": [],
+      "misses": [
+        "throw"
+      ],
+      "incidents": 0,
+      "alarms_per_minute": 0.0
+    },
+    {
+      "clip": "throw_seating_cartons",
+      "split": "S1-tune",
+      "expected": [
+        "throw"
+      ],
+      "fired": [
+        "drag",
+        "manual_heavy_handling",
+        "rough_handling"
+      ],
+      "hits": [],
+      "misses": [
+        "throw"
+      ],
+      "incidents": 6,
+      "alarms_per_minute": 23.9
+    }
+  ],
+  "summary": {
+    "S1-heldout": {
+      "hit": 1,
+      "miss": 4,
+      "clips": 4,
+      "recall": 0.2
+    },
+    "S1-tune": {
+      "hit": 0,
+      "miss": 4,
+      "clips": 3,
+      "recall": 0.0
+    }
+  }
+}

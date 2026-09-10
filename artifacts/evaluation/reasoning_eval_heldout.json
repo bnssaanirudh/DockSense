@@ -14,9 +14,9 @@
       "label": "baseline",
       "per_clip": {
         "carry_1.mp4": 0,
-        "carry_2.mp4": 1,
+        "carry_2.mp4": 0,
         "carry_3.mp4": 0,
-        "drag_1.mp4": 0,
+        "drag_1.mp4": 1,
         "drag_2.mp4": 1,
         "drag_3.mp4": 1,
         "drop_1.mp4": 1,
@@ -34,8 +34,8 @@
         "static_1.mp4": 0,
         "static_2.mp4": 0,
         "static_3.mp4": 0,
-        "throw_1.mp4": 2,
-        "throw_2.mp4": 2,
+        "throw_1.mp4": 1,
+        "throw_2.mp4": 1,
         "throw_3.mp4": 1,
         "unstable_stack_1.mp4": 1,
         "unstable_stack_2.mp4": 1,
@@ -45,15 +45,15 @@
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 2,
+          "true_positive": 3,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 3,
-          "n_pred": 2,
+          "n_pred": 3,
           "precision": 1.0,
-          "recall": 0.6667,
-          "f1": 0.8,
-          "mean_temporal_iou": 0.6951
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.6464
         },
         "drop": {
           "behaviour": "drop",
@@ -81,15 +81,15 @@
         },
         "throw": {
           "behaviour": "throw",
-          "true_positive": 3,
-          "false_positive": 3,
-          "false_negative": 0,
+          "true_positive": 2,
+          "false_positive": 1,
+          "false_negative": 1,
           "n_gt": 3,
-          "n_pred": 6,
-          "precision": 0.5,
-          "recall": 1.0,
+          "n_pred": 3,
+          "precision": 0.6667,
+          "recall": 0.6667,
           "f1": 0.6667,
-          "mean_temporal_iou": 0.541
+          "mean_temporal_iou": 0.5036
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -107,14 +107,14 @@
       "micro": {
         "behaviour": "micro",
         "true_positive": 14,
-        "false_positive": 3,
+        "false_positive": 1,
         "false_negative": 1,
         "n_gt": 15,
-        "n_pred": 17,
-        "precision": 0.8235,
+        "n_pred": 15,
+        "precision": 0.9333,
         "recall": 0.9333,
-        "f1": 0.875,
-        "mean_temporal_iou": 0.77
+        "f1": 0.9333,
+        "mean_temporal_iou": 0.7652
       }
     },
     "no_tracking": {
@@ -228,9 +228,9 @@
       "label": "no_smoothing",
       "per_clip": {
         "carry_1.mp4": 0,
-        "carry_2.mp4": 1,
+        "carry_2.mp4": 0,
         "carry_3.mp4": 0,
-        "drag_1.mp4": 0,
+        "drag_1.mp4": 1,
         "drag_2.mp4": 1,
         "drag_3.mp4": 1,
         "drop_1.mp4": 1,
@@ -248,8 +248,8 @@
         "static_1.mp4": 0,
         "static_2.mp4": 0,
         "static_3.mp4": 0,
-        "throw_1.mp4": 2,
-        "throw_2.mp4": 2,
+        "throw_1.mp4": 1,
+        "throw_2.mp4": 1,
         "throw_3.mp4": 1,
         "unstable_stack_1.mp4": 1,
         "unstable_stack_2.mp4": 1,
@@ -259,18 +259,6 @@
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 2,
-          "false_positive": 0,
-          "false_negative": 1,
-          "n_gt": 3,
-          "n_pred": 2,
-          "precision": 1.0,
-          "recall": 0.6667,
-          "f1": 0.8,
-          "mean_temporal_iou": 0.6951
-        },
-        "drop": {
-          "behaviour": "drop",
           "true_positive": 3,
           "false_positive": 0,
           "false_negative": 0,
@@ -279,6 +267,18 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
+          "mean_temporal_iou": 0.6464
+        },
+        "drop": {
+          "behaviour": "drop",
+          "true_positive": 3,
+          "false_positive": 1,
+          "false_negative": 0,
+          "n_gt": 3,
+          "n_pred": 4,
+          "precision": 0.75,
+          "recall": 1.0,
+          "f1": 0.8571,
           "mean_temporal_iou": 0.7346
         },
         "improper_stack": {
@@ -295,15 +295,15 @@
         },
         "throw": {
           "behaviour": "throw",
-          "true_positive": 2,
-          "false_positive": 4,
-          "false_negative": 1,
+          "true_positive": 1,
+          "false_positive": 1,
+          "false_negative": 2,
           "n_gt": 3,
-          "n_pred": 6,
-          "precision": 0.3333,
-          "recall": 0.6667,
-          "f1": 0.4444,
-          "mean_temporal_iou": 0.4246
+          "n_pred": 2,
+          "precision": 0.5,
+          "recall": 0.3333,
+          "f1": 0.4,
+          "mean_temporal_iou": 0.4739
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -321,23 +321,23 @@
       "micro": {
         "behaviour": "micro",
         "true_positive": 13,
-        "false_positive": 4,
+        "false_positive": 2,
         "false_negative": 2,
         "n_gt": 15,
-        "n_pred": 17,
-        "precision": 0.7647,
+        "n_pred": 15,
+        "precision": 0.8667,
         "recall": 0.8667,
-        "f1": 0.8125,
-        "mean_temporal_iou": 0.7697
+        "f1": 0.8667,
+        "mean_temporal_iou": 0.7831
       }
     },
     "no_event_graph": {
       "label": "no_event_graph",
       "per_clip": {
         "carry_1.mp4": 0,
-        "carry_2.mp4": 1,
+        "carry_2.mp4": 0,
         "carry_3.mp4": 0,
-        "drag_1.mp4": 0,
+        "drag_1.mp4": 1,
         "drag_2.mp4": 1,
         "drag_3.mp4": 1,
         "drop_1.mp4": 1,
@@ -355,8 +355,8 @@
         "static_1.mp4": 0,
         "static_2.mp4": 0,
         "static_3.mp4": 0,
-        "throw_1.mp4": 2,
-        "throw_2.mp4": 2,
+        "throw_1.mp4": 1,
+        "throw_2.mp4": 1,
         "throw_3.mp4": 1,
         "unstable_stack_1.mp4": 1,
         "unstable_stack_2.mp4": 1,
@@ -366,15 +366,15 @@
       "by_behaviour": {
         "drag": {
           "behaviour": "drag",
-          "true_positive": 2,
+          "true_positive": 3,
           "false_positive": 0,
-          "false_negative": 1,
+          "false_negative": 0,
           "n_gt": 3,
-          "n_pred": 2,
+          "n_pred": 3,
           "precision": 1.0,
-          "recall": 0.6667,
-          "f1": 0.8,
-          "mean_temporal_iou": 0.6951
+          "recall": 1.0,
+          "f1": 1.0,
+          "mean_temporal_iou": 0.6464
         },
         "drop": {
           "behaviour": "drop",
@@ -402,15 +402,15 @@
         },
         "throw": {
           "behaviour": "throw",
-          "true_positive": 3,
-          "false_positive": 3,
-          "false_negative": 0,
+          "true_positive": 2,
+          "false_positive": 1,
+          "false_negative": 1,
           "n_gt": 3,
-          "n_pred": 6,
-          "precision": 0.5,
-          "recall": 1.0,
+          "n_pred": 3,
+          "precision": 0.6667,
+          "recall": 0.6667,
           "f1": 0.6667,
-          "mean_temporal_iou": 0.541
+          "mean_temporal_iou": 0.5036
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -428,14 +428,14 @@
       "micro": {
         "behaviour": "micro",
         "true_positive": 14,
-        "false_positive": 3,
+        "false_positive": 1,
         "false_negative": 1,
         "n_gt": 15,
-        "n_pred": 17,
-        "precision": 0.8235,
+        "n_pred": 15,
+        "precision": 0.9333,
         "recall": 0.9333,
-        "f1": 0.875,
-        "mean_temporal_iou": 0.77
+        "f1": 0.9333,
+        "mean_temporal_iou": 0.7652
       }
     }
   }

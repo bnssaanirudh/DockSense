@@ -21,16 +21,28 @@ class ThrowDetector(BehaviourDetector):
             feat = ctx.f(track_id)
             window = ctx.window(track_id, lookback)
             dx, _, distance = travel_heights(window, ctx.fw, ctx.fh)
-            unsupported = [f for f in window if not f.held_by_person and (f.floor_gap is None or f.floor_gap > 0.1)]
+            min_speed = float(self.cfg["min_speed"])
+            need = int(self.cfg["min_unsupported_frames"])
+            # Flight is a RUN of frames, not a peak. Counting qualifying frames
+            # anywhere in the lookback let one jitter frame — a box that jumped
+            # because the detector re-boxed it — satisfy the whole condition, and
+            # on real footage that fired throws on clips of people dragging.
+            # Walk back from now while the object is still moving and still
+            # unsupported, and require the run itself to be long enough.
+            flight = 0
+            for f in reversed(window):
+                airborne = not f.held_by_person and (f.floor_gap is None or f.floor_gap > 0.1)
+                if not airborne or f.speed < min_speed:
+                    break
+                flight += 1
             margin = min(
-                feat.speed / float(self.cfg["min_speed"]),
+                feat.speed / min_speed,
                 feat.horizontal_ratio / float(self.cfg["min_horizontal_ratio"]),
-                len(unsupported) / float(self.cfg["min_unsupported_frames"]),
+                flight / float(need),
             )
             if (
-                feat.speed >= float(self.cfg["min_speed"])
-                and feat.horizontal_ratio >= float(self.cfg["min_horizontal_ratio"])
-                and len(unsupported) >= int(self.cfg["min_unsupported_frames"])
+                feat.horizontal_ratio >= float(self.cfg["min_horizontal_ratio"])
+                and flight >= need
             ):
                 severity = float(self.cfg["base_severity"]) + min(abs(dx), 1.0) * 0.15
                 events.append(
@@ -43,7 +55,7 @@ class ThrowDetector(BehaviourDetector):
                         evidence={
                             "speed": round(feat.speed, 3),
                             "horizontal_ratio": round(feat.horizontal_ratio, 3),
-                            "unsupported_frames": len(unsupported),
+                            "unsupported_flight_frames": flight,
                             "travel_heights": round(distance, 3),
                         },
                         zone=feat.zone,

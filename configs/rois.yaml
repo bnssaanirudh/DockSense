@@ -1,0 +1,24 @@
+# Region of interest per source clip, in pixels of the 1280x720 source.
+#
+# The session-1 footage is NOT direct camera output. Every clip is a phone
+# recording of an NVMS playback window, so each frame contains the CCTV pane
+# plus surrounding software chrome — menu bar, timeline scrubber, calendar
+# sidebar — and a burned-in caption card along the bottom. Feeding that to a
+# detector means asking it to find cartons in a screenshot of a UI.
+#
+# These boxes crop each frame down to the camera pane alone. They are measured
+# by eye from sampled frames and are deliberately inset a few pixels, because
+# the recording is handheld and the pane drifts slightly during a clip.
+#
+# What cropping cannot remove: annotation drawn *inside* the pane — the red
+# circles and arrows the person recording added to point at the behaviour. Those
+# stay in the frame and in every evidence clip. Stated in the limitations rather
+# than papered over.
+clips:
+  roll_drop_carton:        {x0: 290, y0: 8,   x1: 1276, y1: 626}
+  roll_drag_wet_floor:     {x0: 170, y0: 30,  x1: 1146, y1: 578}
+  throw_seating_cartons:   {x0: 6,   y0: 120, x1: 1126, y1: 598}
+  throw_mattresses:        {x0: 215, y0: 135, x1: 1276, y1: 596}
+  dock_drag_cupboard:      {x0: 6,   y0: 35,  x1: 1262, y1: 598}
+  kd_drag_heavy_on_top:    {x0: 190, y0: 6,   x1: 1276, y1: 518}
+  stepping_vertical_heavy: {x0: 6,   y0: 90,  x1: 1226, y1: 568}

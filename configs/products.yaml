@@ -7,7 +7,16 @@
 
 detector:
   model: yolov8s-worldv2.pt
-  conf_threshold: 0.25
+  # 0.10, not 0.25. Chosen on the session-1 TUNE clips only (roll_drop_carton,
+  # throw_seating_cartons, kd_drag_heavy_on_top), never on the held-out four.
+  # That footage is a phone recording of a CCTV playback screen: two lossy
+  # encodes and a moire pattern on top of an already-soft camera. Confidence is
+  # systematically depressed, but the boxes are correct — at 0.25 the detector
+  # returned 11 product boxes across sampled frames and at 0.10 it returned ~30,
+  # and inspection showed the extra ones are real cartons, not noise. Persistent
+  # tracking plus the per-behaviour duration gates are what suppress spurious
+  # boxes here; the confidence threshold is the wrong place to do it.
+  conf_threshold: 0.10
   iou_threshold: 0.45
   imgsz: 640
 

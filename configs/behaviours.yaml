@@ -50,8 +50,16 @@ throw:
 
 drag:
   enabled: true
-  min_distance_heights: 1.5     # horizontal travel, in obj heights
-  max_vertical_variation: 0.25  # stays low = never lifted
+  # 0.8 and 0.5, not 1.5 and 0.25. Both were set against rendered clips where a
+  # rigid rectangle slid 3.75 of its own heights with literally zero vertical
+  # movement. Measured on the session-1 TUNE clips (never the held-out four):
+  # a genuinely dragged KD packet travels at most 1.16 obj-heights in the
+  # detector's window and wobbles by 0.41. For a metre-tall packet, 0.8 heights
+  # is already 0.8 m of dragging, and 0.5 heights of wobble is still far below
+  # the >=1.0 that any actual lift produces — so this separates dragging from
+  # carrying on physical grounds rather than moving the bar until something fires.
+  min_distance_heights: 0.8     # horizontal travel, in obj heights
+  max_vertical_variation: 0.5   # stays low = never lifted
   floor_proximity: 0.3          # bottom edge within this of floor line
   min_duration_seconds: 1.5
   cooldown_seconds: 3.0

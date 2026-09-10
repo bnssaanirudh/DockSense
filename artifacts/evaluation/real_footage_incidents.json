@@ -1,0 +1,212 @@
+{
+  "dock_drag_cupboard": [
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 7.33,
+      "end_t": 10.67,
+      "risk": 54.07,
+      "band": "high",
+      "confidence": 0.8463938327583238
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 21.57,
+      "end_t": 24.97,
+      "risk": 54.22,
+      "band": "high",
+      "confidence": 0.6998585167285962
+    },
+    {
+      "behaviour_id": "B03",
+      "name": "drag",
+      "start_t": 23.5,
+      "end_t": 24.97,
+      "risk": 37.73,
+      "band": "medium",
+      "confidence": 0.8621027350425721
+    }
+  ],
+  "kd_drag_heavy_on_top": [
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 5.6,
+      "end_t": 7.43,
+      "risk": 50.74,
+      "band": "high",
+      "confidence": 0.49986771872512764
+    },
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 5.73,
+      "end_t": 8.4,
+      "risk": 49.26,
+      "band": "medium",
+      "confidence": 0.5581649518013001
+    },
+    {
+      "behaviour_id": "B02",
+      "name": "throw",
+      "start_t": 6.3,
+      "end_t": 7.6,
+      "risk": 81.72,
+      "band": "critical",
+      "confidence": 0.9019103646278381
+    },
+    {
+      "behaviour_id": "B02",
+      "name": "throw",
+      "start_t": 6.4,
+      "end_t": 6.57,
+      "risk": 68.91,
+      "band": "high",
+      "confidence": 0.8552321255207063
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 10.83,
+      "end_t": 13.13,
+      "risk": 51.78,
+      "band": "high",
+      "confidence": 0.7286048209411433
+    },
+    {
+      "behaviour_id": "B09",
+      "name": "stepping",
+      "start_t": 23.23,
+      "end_t": 25.27,
+      "risk": 64.85,
+      "band": "high",
+      "confidence": 0.5926840186119079
+    },
+    {
+      "behaviour_id": "B02",
+      "name": "throw",
+      "start_t": 26.07,
+      "end_t": 26.13,
+      "risk": 69.06,
+      "band": "high",
+      "confidence": 0.914534616470337
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 30.23,
+      "end_t": 33.67,
+      "risk": 54.3,
+      "band": "high",
+      "confidence": 0.6212585273107465
+    }
+  ],
+  "roll_drag_wet_floor": [],
+  "roll_drop_carton": [
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 0.13,
+      "end_t": 2.5,
+      "risk": 45.21,
+      "band": "medium",
+      "confidence": 0.5517954325675964
+    },
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 0.13,
+      "end_t": 2.67,
+      "risk": 45.52,
+      "band": "medium",
+      "confidence": 0.593584189414978
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 6.1,
+      "end_t": 9.1,
+      "risk": 53.33,
+      "band": "high",
+      "confidence": 0.6819297745929115
+    }
+  ],
+  "stepping_vertical_heavy": [
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 0.13,
+      "end_t": 2.77,
+      "risk": 49.19,
+      "band": "medium",
+      "confidence": 0.583580492734909
+    },
+    {
+      "behaviour_id": "B03",
+      "name": "drag",
+      "start_t": 21.07,
+      "end_t": 22.0,
+      "risk": 40.86,
+      "band": "medium",
+      "confidence": 0.8805026352405548
+    }
+  ],
+  "throw_mattresses": [],
+  "throw_seating_cartons": [
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 0.13,
+      "end_t": 2.33,
+      "risk": 51.56,
+      "band": "high",
+      "confidence": 0.8627907156944276
+    },
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 0.33,
+      "end_t": 2.33,
+      "risk": 44.55,
+      "band": "medium",
+      "confidence": 0.3833057641983032
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 2.97,
+      "end_t": 8.0,
+      "risk": 57.85,
+      "band": "high",
+      "confidence": 0.5643638413264059
+    },
+    {
+      "behaviour_id": "B10",
+      "name": "manual_heavy_handling",
+      "start_t": 5.1,
+      "end_t": 8.0,
+      "risk": 46.18,
+      "band": "medium",
+      "confidence": 0.6341647791862488
+    },
+    {
+      "behaviour_id": "B04",
+      "name": "rough_handling",
+      "start_t": 8.63,
+      "end_t": 12.07,
+      "risk": 54.3,
+      "band": "high",
+      "confidence": 0.9216994643211365
+    },
+    {
+      "behaviour_id": "B03",
+      "name": "drag",
+      "start_t": 10.93,
+      "end_t": 12.07,
+      "risk": 38.74,
+      "band": "medium",
+      "confidence": 0.9196135640144348
+    }
+  ]
+}

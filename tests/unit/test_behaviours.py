@@ -39,7 +39,7 @@ def test_throw_positive_fires():
     events = ThrowDetector(_cfg("throw")).update(synth.scenario_throw())
     assert len(events) == 1
     assert events[0].behaviour_id == "B02"
-    assert events[0].evidence["unsupported_frames"] >= _cfg("throw")["min_unsupported_frames"]
+    assert events[0].evidence["unsupported_flight_frames"] >= _cfg("throw")["min_unsupported_frames"]
 
 
 def test_drag_negative_carry_stays_silent():

@@ -23,6 +23,11 @@ pytest-cache-files-*/
 # Public footage is re-fetchable via scripts/fetch_public_data.py, so it is
 # reproducible without being committed. Provenance lives in project.md.
 data/raw/*
+# Session directories are traversed only so takes.csv can be tracked; the
+# footage itself never enters git.
+!data/raw/*/
+data/raw/*/*
+!data/raw/*/takes.csv
 data/processed/*
 data/clips/*
 data/public/*
@@ -32,6 +37,7 @@ data/test_tmp/*
 data/synthetic/*
 !data/**/.gitkeep
 !data/raw/takes.csv
+!data/raw/*/takes.csv
 !data/synthetic/ground_truth.csv
 !data/synthetic/heldout/
 !data/synthetic/heldout/ground_truth.csv

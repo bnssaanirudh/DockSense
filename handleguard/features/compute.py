@@ -21,14 +21,18 @@ class FeatureExtractor:
 
     camera: str = "demo_cam_1"
     window_frames: int | None = None
+    min_track_age_frames: int | None = None
     floor_y_norm: float = 0.86
     zones_cfg: dict[str, Any] | None = None
     _prev: dict[int, TrackFeatures] = field(default_factory=dict)
     _windows: dict[int, deque[TrackFeatures]] = field(default_factory=lambda: defaultdict(deque))
 
     def __post_init__(self) -> None:
+        smoothing = config.behaviours().get("smoothing", {})
         if self.window_frames is None:
-            self.window_frames = int(config.behaviours().get("smoothing", {}).get("window_frames", 5))
+            self.window_frames = int(smoothing.get("window_frames", 5))
+        if self.min_track_age_frames is None:
+            self.min_track_age_frames = int(smoothing.get("min_track_age_frames", 4))
         if self.zones_cfg is None:
             self.zones_cfg = config.zones()
 
@@ -42,7 +46,15 @@ class FeatureExtractor:
         for track in tracks:
             feat = self._compute_one(track, frame, by_id)
             self._remember(feat)
-            out[track.id] = feat
+            # min_track_age_frames was declared in behaviours.yaml and never read
+            # by anything — a documented knob that did nothing. It matters: a
+            # track one frame old has no velocity history, so its first real
+            # measurement is a full-magnitude jump, and on soft real footage that
+            # jump is detector jitter rather than motion. Held-back features are
+            # still remembered, so history is intact the moment the track is old
+            # enough to be trusted.
+            if track.age >= self.min_track_age_frames:
+                out[track.id] = feat
 
         active_ids = set(by_id)
         for track_id in list(self._prev):
@@ -52,6 +64,28 @@ class FeatureExtractor:
             if track_id not in active_ids:
                 del self._windows[track_id]
         return out
+
+    def _floor_gap(
+        self, track: Track, frame: Frame, tracks: dict[int, Track], y2: float, h_px: float
+    ) -> float:
+        """Height above the local ground, in object-heights.
+
+        A single horizontal floor line only describes an overhead-ish view. In a
+        perspective view the ground is metres away at the top of frame and under
+        the camera at the bottom, so one line puts a box on the floor at one
+        depth and a metre in the air at another — which is why drag never fired
+        on real footage.
+
+        The nearest person's feet are a calibration-free local ground reference:
+        whoever is standing beside the box is standing on the same floor, at the
+        same depth. Falls back to the configured line when nobody is in frame.
+        """
+        actors = [t for t in tracks.values() if t.role == "actor" and t.id != track.id]
+        if actors:
+            cx, _ = g.center(track.xyxy)
+            nearest = min(actors, key=lambda t: abs(g.center(t.xyxy)[0] - cx))
+            return max(nearest.xyxy[3] - y2, 0.0) / h_px
+        return max((self.floor_y_norm * frame.h) - y2, 0.0) / h_px
 
     def _compute_one(self, track: Track, frame: Frame, tracks: dict[int, Track]) -> TrackFeatures:
         x1, y1, x2, y2 = track.xyxy
@@ -73,7 +107,7 @@ class FeatureExtractor:
             ay = (vy - prev.vy) / dt
 
         zone = self._zone_for(track, frame)
-        floor_gap = max((self.floor_y_norm * frame.h) - y2, 0.0) / h_px
+        floor_gap = self._floor_gap(track, frame, tracks, y2, h_px)
         supported_by = tuple(
             other.id
             for other in tracks.values()
@@ -142,9 +176,18 @@ class FeatureExtractor:
 
     @staticmethod
     def _looks_held(product: Track, actor: Track) -> bool:
-        overlap = g.horizontal_overlap(product.xyxy, actor.xyxy) / max(product.width, 1e-6)
-        vertical_intersection = min(product.xyxy[3], actor.xyxy[3]) - max(product.xyxy[1], actor.xyxy[1])
-        return overlap >= 0.25 and vertical_intersection > 0
+        """Does this person plausibly have hold of this product?
+
+        The old test was horizontal overlap plus *any* vertical intersection,
+        which in a loading bay means "somebody is standing behind it at a
+        different depth". Measured on the session-1 tune clips, a carton being
+        thrown across a gap read as held in 100% of frames, so B02 could never
+        fire on a real throw. Requiring a real share of the product's own area
+        to be inside the person's box is a stricter and more literal reading of
+        "holding it".
+        """
+        share = g.intersection_area(product.xyxy, actor.xyxy) / max(g.area(product.xyxy), 1e-6)
+        return share >= 0.2
 
 
 def _clamp01(value: float) -> float:
