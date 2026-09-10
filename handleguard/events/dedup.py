@@ -29,13 +29,17 @@ class EventDeduper:
             self._active[key] = event
 
     def settled(self) -> list[BehaviourEvent]:
-        """Events already closed by a cooldown, without draining anything.
+        """Events observed so far this run, without draining anything.
 
-        Detectors that reason over history (B11 sequence) and the recurrence risk
-        component need to see earlier events mid-run. Only closed events are
-        exposed: an event still merging would report a moving end time.
+        Includes events still merging as well as closed ones. Suppression logic
+        depends on it: B04 defers to a drop or throw on the same entity, and a
+        drop is still *active* while B04 is deciding, so exposing only closed
+        events meant the suppression never fired and every drop was reported
+        twice. An active event's end time moves, which is fine for the two
+        consumers here — suppression and recurrence counting both care that the
+        event happened, not exactly when it stopped.
         """
-        return list(self._closed)
+        return self._closed + list(self._active.values())
 
     def flush(self) -> list[BehaviourEvent]:
         out = self._closed + list(self._active.values())

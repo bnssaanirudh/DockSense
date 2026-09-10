@@ -141,8 +141,8 @@ downscaled to 1280×720, `imgsz=640`:
 
 | Metric | Value |
 |---|---|
-| Detection latency p50 / p95 | **37.6 ms / 78.7 ms** (warmup excluded) |
-| End-to-end throughput | **13.1 fps** (offline batch, not real-time) |
+| Detection latency p50 / p95 | **28.2 ms / 44.8 ms** (warmup excluded) |
+| End-to-end throughput | **21.1 fps** (offline batch, not real-time) |
 | Tracking + features + behaviours | **< 1 ms combined** |
 | Detections on real CCTV | 57 and 52 on sample frames, correctly classed |
 | Offline operation | verified with sockets blocked — zero outbound connections |
@@ -152,9 +152,32 @@ Full breakdown in `artifacts/evaluation/latency.json`. Detection is ~99% of
 pipeline time, which means **the temporal reasoning layer is effectively free** —
 the part that differentiates this system costs under a millisecond a frame.
 
-**What is not yet measured.** No per-behaviour precision/recall exists yet,
-because ground-truth footage of drops, throws and stacking has not been recorded.
-Until it is, no accuracy number should appear anywhere.
+**Reasoning layer, measured.** On physics-rendered clips with exact box geometry
+injected as perception (5 positives, 4 hard negatives, temporal IoU 0.3):
+
+| Variant | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| baseline | 0.750 | 0.600 | **0.667** |
+| `no_tracking` | 0.000 | 0.000 | **0.000** |
+| `no_smoothing` | 0.750 | 0.600 | 0.667 |
+| `no_event_graph` | 0.750 | 0.600 | 0.667 |
+
+**`no_tracking` collapsing to zero is the evidence for the central claim**: remove
+persistent identity and nothing temporal accumulates, so no behaviour fires at all.
+The system detects sequences, not frames.
+
+`no_smoothing` and `no_event_graph` show **no delta**, and that is reported rather
+than hidden. These clips have zero detector jitter for smoothing to remove, and the
+event graph feeds the *risk score* rather than event detection, so event F1 is the
+wrong instrument for it. A flag that changes nothing is worth knowing about.
+
+Two caveats that travel with these numbers: this measures **reasoning only**
+(perception is held perfect by construction), and the **thresholds were tuned on
+this set, so it is not held out**. Full report: `artifacts/evaluation/reasoning_eval.md`.
+
+**What is still not measured.** Per-behaviour precision/recall on *real* footage.
+Ground-truth video of drops, throws and stacking has not been recorded, so no
+field accuracy number should appear anywhere.
 
 **Why the public dataset does not fill that gap.** The Unsafe-Net footage is a
 metal-press factory, and its *Safe Walkway Violation* label means *a person off a

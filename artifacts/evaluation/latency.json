@@ -4,44 +4,43 @@
     {
       "stage": "detect",
       "count": 80,
-      "mean_ms": 75.65,
-      "p50_ms": 37.56,
-      "p95_ms": 78.74,
-      "max_ms": 2207.13,
-      "total_ms": 6052.39
+      "mean_ms": 46.89,
+      "p50_ms": 28.22,
+      "p95_ms": 44.84,
+      "max_ms": 1491.32,
+      "total_ms": 3751.47
     },
     {
       "stage": "track",
       "count": 80,
-      "mean_ms": 0.81,
-      "p50_ms": 0.48,
-      "p95_ms": 0.79,
-      "max_ms": 17.72,
-      "total_ms": 64.46
+      "mean_ms": 0.44,
+      "p50_ms": 0.36,
+      "p95_ms": 0.61,
+      "max_ms": 4.55,
+      "total_ms": 34.95
     },
     {
       "stage": "features",
       "count": 80,
-      "mean_ms": 0.07,
-      "p50_ms": 0.06,
-      "p95_ms": 0.09,
-      "max_ms": 0.21,
-      "total_ms": 5.3
+      "mean_ms": 0.04,
+      "p50_ms": 0.04,
+      "p95_ms": 0.06,
+      "max_ms": 0.09,
+      "total_ms": 3.4
     },
     {
       "stage": "behaviours",
       "count": 80,
-      "mean_ms": 0.02,
+      "mean_ms": 0.01,
       "p50_ms": 0.01,
-      "p95_ms": 0.03,
-      "max_ms": 0.06,
-      "total_ms": 1.33
+      "p95_ms": 0.02,
+      "max_ms": 0.03,
+      "total_ms": 1.04
     }
   ],
-  "total_ms": 6123.49,
-  "fps_end_to_end": 13.06,
+  "total_ms": 3790.86,
+  "fps_end_to_end": 21.1,
   "hardware": "Apple M3, 8 GB, MPS",
-  "input": "1920x1080 CCTV -> 1280x720, imgsz=640, inference_fps=8",
-  "clip": "data/public/tune/walkway_violation/0_tr1.mp4",
-  "incidents": 0
+  "input": "1920x1080 CCTV -> 1280x720, imgsz=640, inference_fps=24",
+  "note": "inference_fps raised 8 -> 24 on 10 Sep so fast-falling objects keep their track id; see configs/behaviours.yaml"
 }

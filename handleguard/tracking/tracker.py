@@ -50,7 +50,11 @@ class Tracker:
                     track_low_thresh=0.1,
                     new_track_thresh=0.25,
                     track_buffer=max_missed,
-                    match_thresh=0.8,
+                    # 0.95 accepts an association down to ~0.05 IoU. Fast
+                    # vertical motion legitimately produces barely-overlapping
+                    # boxes between frames; the stricter default drops the track
+                    # exactly when the interesting thing is happening.
+                    match_thresh=0.95,
                     fuse_score=True,
                 )
                 self._byte_tracker = BYTETracker(args, frame_rate=frame_rate)

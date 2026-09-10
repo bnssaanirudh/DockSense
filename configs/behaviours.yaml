@@ -10,7 +10,14 @@
 # Record what you tuned on in STATE.md. Never tune on S3.
 
 video:
-  inference_fps: 8
+  # 24, not 8. Measured 10 Sep: a carton in free fall moves ~70 px between
+  # frames at 8 fps while being ~80 px tall, so consecutive boxes overlap by
+  # ~12%. IoU association fails, the tracker assigns a new id mid-fall, and no
+  # track ever carries the fall history — B01 never fires on an actual drop.
+  # At 24 fps the track survives and peak velocity reads 13.6 obj-heights/s
+  # against a 1.5 threshold. Costs 3x detection time; detection is offline
+  # batch, so that is the cheaper side of the trade.
+  inference_fps: 24
   display_fps: 24
   max_resolution: [1280, 720]
 
@@ -21,7 +28,13 @@ smoothing:
 drop:
   enabled: true
   min_fall_heights: 0.8         # obj heights of downward travel
-  min_downward_velocity: 1.5    # obj heights / second
+  # 4.0, not 1.5. Measured 10 Sep on physics-rendered clips: free fall peaks at
+  # ~13.6 obj-heights/s, controlled lowering into a stack at ~1.8, and a gentle
+  # placement at ~0.9. A threshold of 1.5 sits BELOW controlled placement, so
+  # every deliberate stacking motion read as a drop. 4.0 separates free fall
+  # from controlled motion with a wide margin on both sides — this is a physical
+  # distinction (gravity vs. a person lowering something), not a fitted value.
+  min_downward_velocity: 4.0    # obj heights / second
   impact_decel: 2.5             # velocity drop at impact
   max_horizontal_ratio: 0.6     # above this it's a throw, not a drop
   cooldown_seconds: 4.0

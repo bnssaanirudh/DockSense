@@ -58,7 +58,7 @@ left is mostly sequential and mostly gated on footage:
 
 ## Deadline
 
-**10 September 2026.** Today is 9 September. **~1 day.**
+**10 September 2026 — TODAY.** Submission day.
 
 ---
 
@@ -114,12 +114,21 @@ Added 9 Sep (full audit pass):
 - Per-stage latency instrumentation with real measured numbers.
 - Console served from the API at `/`; demo is one offline command.
 
+Added 10 Sep:
+
+- `scripts/eval_reasoning.py` + exact per-frame boxes from the renderer — the
+  reasoning layer is now **measured**, not asserted. First run scored F1 0.222 and
+  exposed that **B01 never fired on an actual drop**: at 8 fps a falling carton
+  outruns IoU association and the tracker loses it mid-fall. After the fixes,
+  **F1 0.667**, with `no_tracking` collapsing to **0.000**.
+- `artifacts/evaluation/reasoning_eval.md` — results with the caveats attached.
+
 **140 tests pass.**
 
-**Still missing: real footage of drops / throws / stacking.** Behaviour *logic* is
-tested against injected synthetic tracks; perception is verified on real CCTV. What
-does not exist yet is real video where those two meet, which is what every
-per-behaviour metric and every "robustly demonstrated" claim depends on.
+**Still missing: real footage of drops / throws / stacking.** The reasoning layer
+is now measured on rendered clips and perception is verified on real CCTV, but
+**no real video exists where the two meet**. Every "robustly demonstrated" claim
+still depends on that.
 
 ---
 
@@ -144,7 +153,7 @@ storage out of band; they are never committed (size + privacy).
 | Blocker | Severity | Owner | Note |
 |---|---|---|---|
 | **No real footage of drop / throw / stacking** | CRITICAL | unassigned | Public CCTV covers B07 + hard negatives only. B01/B02/B05/B06/B08 have no real video to fire on. **Decision taken 8 Sep: we record.** Full brief below — see *Recording brief*. ~35 min. |
-| **No behaviour has ever fired on real video** | HIGH | CV | Pipeline runs clean on real CCTV (8.1 s / 60 frames warm) but yields **0 incidents**. Zones are placeholders, and see the note below on why the public dataset cannot supply B07 ground truth. Real zone validation needs our own footage. |
+| **No behaviour has ever fired on real video** | HIGH | CV | Reasoning is now measured on rendered clips (F1 0.667) and detection on real CCTV, but the two have never met on real footage. Zones are still placeholders. |
 | **Lane C has no owner** | HIGH | team | Git history shows only two contributors. Lane C owns the demo, screenshots and slides — everything the judges actually see. Interim split recorded in Ownership; name the third person or accept the split. |
 
 ### Closed 8 Sep
@@ -338,6 +347,7 @@ previous list are complete.
 
 | When | Who | What |
 |---|---|---|
+| 10 Sep | Claude | **Reasoning layer measured for the first time — and it was broken.** Built `scripts/eval_reasoning.py` (renderer now emits exact per-frame boxes, so reasoning is measured with perception held perfect). First run: **F1 0.222**. Root cause: a falling carton moves ~70 px/frame at 8 fps while being ~80 px tall, so ByteTrack lost the track mid-fall and **B01 never fired on an actual drop**. Fixes: inference_fps 8→24, match_thresh 0.8→0.95, drop velocity threshold 1.5→4.0 (controlled lowering peaks at 1.8, free fall at 13.6), horizontal share computed over the window instead of one frame, event start_t from motion onset instead of window start, and `settled()` exposing in-flight events so B04's suppression actually works. **F1 0.222 → 0.667.** Ablation: `no_tracking` collapses to 0.000. |
 | 9 Sep | Claude | **Full audit — file-wise, flow-wise, backend, frontend, live browser.** Fixed: empty `privacy/` package despite three docs claiming face blurring (now implemented, wired into clip writer, tested on stored pixels); missing `metrics/__init__.py`; `seed_fake_incidents.py` ignoring `--help`; README stale test count and undocumented `PATCH /review`; STATE title still saying HandleGuard. Verified live: all 7 endpoints, path traversal blocked (404), invalid review status (422), console renders, filters work, review persists, assistant guardrail holds in the UI, zero console errors. Pruned 85 lines of stale task list. |
 | 8 Sep | Claude | **All 12 behaviours implemented (B04/B10/B11 completed), ablation flags wired, temporal event graph added, README written.** 123 tests pass. B04 defers to B01/B02 and B10 goes silent when equipment is visible, so the weak three don't generate noise they can't justify. |
 | 8 Sep | Claude | **B05/B06/B08/B09/B12 implemented — 4 behaviours to 9.** Shared geometry helpers added to `base.py` so detectors never touch raw `xyxy` (enforced by test). Fixed a real defect: `below()` used `is_above`'s default `min_overlap=0.3`, making a box overhanging >70% invisible to B06 — the most dangerous stack was the one it couldn't see. 103 tests pass. |
@@ -421,9 +431,9 @@ downscaled to 1280×720, `imgsz=640`, `inference_fps=8`.
 
 | Claim | Measured? | Where measured | Value |
 |---|---|---|---|
-| Detection latency, p50 | ✅ 8 Sep | `artifacts/evaluation/latency.json`, 80 frames of `0_tr1.mp4` | **37.6 ms** |
-| Detection latency, p95 | ✅ 8 Sep | same | **78.7 ms** |
-| End-to-end throughput | ✅ 8 Sep | same | **13.1 fps** |
+| Detection latency, p50 | ✅ 10 Sep | `artifacts/evaluation/latency.json`, 80 frames of `0_tr1.mp4`, inference_fps=24 | **28.2 ms** |
+| Detection latency, p95 | ✅ 10 Sep | same | **44.8 ms** |
+| End-to-end throughput | ✅ 10 Sep | same | **21.1 fps** |
 | Tracking latency, p50 | ✅ 8 Sep | same | 0.5 ms |
 | Feature + behaviour latency, p50 | ✅ 8 Sep | same | ≈0.1 ms combined |
 | Detector on real industrial CCTV | ✅ 8 Sep | `7_tr1.mp4`, `4_te4.mp4`, one frame each | **57 and 52 detections**, classes person / cardboard box / hand trolley |
@@ -437,14 +447,17 @@ downscaled to 1280×720, `imgsz=640`, `inference_fps=8`.
 | API surface | ✅ 9 Sep | live curl against all routes | 7/7 respond; traversal blocked (404), bad review status rejected (422) |
 | Console | ✅ 9 Sep | browser at `/` | renders, filters, sort, review persists, assistant guardrail holds, **zero console errors** |
 | Evidence privacy | ✅ 9 Sep | `tests/unit/test_privacy.py` | head region blurred **in the written clip**; body preserved |
-| Per-behaviour precision / recall | ❌ **NOT MEASURED** | — | **Blocked on footage. Do not quote a number.** |
-| Ablation deltas on real video | ❌ **NOT MEASURED** | harness ready (`scripts/run_ablations.py`) | Blocked on footage |
+| **Reasoning-layer precision / recall / F1** | ✅ 10 Sep | `artifacts/evaluation/reasoning_eval.md`, 5 positives + 4 hard negatives, exact perception injected | **0.750 / 0.600 / 0.667** — measures reasoning only, and **thresholds were tuned on this set, so it is NOT held out** |
+| **Ablation: no_tracking** | ✅ 10 Sep | same | **F1 0.667 → 0.000.** Without persistent identity nothing fires at all |
+| Ablation: no_smoothing, no_event_graph | ✅ 10 Sep | same | **no delta.** Reported, not hidden — see the report for why neither is a win |
+| Per-behaviour P/R on **real** footage | ❌ **NOT MEASURED** | — | **Blocked on footage. Do not quote a number.** |
+| Ablation deltas on **real** video | ❌ **NOT MEASURED** | harness ready | Blocked on footage |
 
 **Caveats that must travel with these numbers:**
 
-- The detect *mean* is 75.7 ms, skewed by a 2207 ms first-frame model warmup.
+- The detect *mean* is 46.9 ms, skewed by a 1491 ms first-frame model warmup.
   **Quote p50, not mean**, and say warmup is excluded.
 - Detection is ~99% of pipeline time. Tracking, features and behaviour reasoning
   are together under 1 ms — the temporal layer is effectively free, which is a
   genuinely good result and worth stating.
-- 13.1 fps is offline batch throughput, **not** a real-time claim.
+- 21.1 fps is offline batch throughput, **not** a real-time claim.

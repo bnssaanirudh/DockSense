@@ -85,18 +85,31 @@ def evaluate_events(
 
 
 def labels_from_csv(path: str | Path) -> list[EventLabel]:
+    """Load event labels, skipping rows that assert *no* event.
+
+    A ground-truth file lists hard negatives too — "gentle_place.mp4 contains
+    nothing" is a claim worth recording, and it is what false positives are
+    measured against. Those rows carry an empty behaviour and empty times, and
+    contribute no EventLabel: anything predicted on that clip has nothing to
+    match and is correctly counted as a false positive.
+    """
+    out: list[EventLabel] = []
     with open(path, newline="") as fh:
-        reader = csv.DictReader(fh)
-        return [
-            EventLabel(
-                video=str(row["video"]),
-                behaviour=str(row["behaviour"]),
-                start_t=float(row["t_start"]),
-                end_t=float(row["t_end"]),
-                source_id=str(row.get("id") or row.get("note") or ""),
+        for row in csv.DictReader(fh):
+            behaviour = str(row.get("behaviour") or "").strip()
+            start, end = str(row.get("t_start") or "").strip(), str(row.get("t_end") or "").strip()
+            if not behaviour or not start or not end:
+                continue
+            out.append(
+                EventLabel(
+                    video=str(row["video"]),
+                    behaviour=behaviour,
+                    start_t=float(start),
+                    end_t=float(end),
+                    source_id=str(row.get("id") or row.get("note") or ""),
+                )
             )
-            for row in reader
-        ]
+    return out
 
 
 def labels_from_incident_db(path: str | Path, *, limit: int = 10000) -> list[EventLabel]:

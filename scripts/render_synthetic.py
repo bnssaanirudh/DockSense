@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import math
 import sys
 from dataclasses import dataclass, field
@@ -174,8 +175,17 @@ def _background() -> np.ndarray:
     return bg
 
 
+# Exact boxes drawn for the current frame, as (role, x0, y0, x1, y1).
+# Emitted alongside the video so evaluation can isolate the reasoning layer from
+# perception: YOLO-World correctly returns nothing on flat rectangles, so any
+# detector run over these clips would measure the renderer, not the reasoning.
+_FRAME_BOXES: list[tuple[str, float, float, float, float]] = []
+
+
 def _draw(frame: np.ndarray, box: Box) -> None:
     x, y, w, h = int(box.x), int(box.y), int(box.w), int(box.h)
+    if w > 0 and h > 0:
+        _FRAME_BOXES.append(("product", float(x), float(y), float(x + w), float(y + h)))
     if w <= 0 or h <= 0:
         return
     x0, y0 = max(x, 0), max(y, 0)
@@ -201,6 +211,7 @@ def _draw_person(frame: np.ndarray, cx: float, top: float, height: float = 300.0
     c = (70, 70, 78)
     hh = height
     head_r = int(hh * 0.09)
+    _FRAME_BOXES.append(("actor", float(cx - hh * 0.13), float(top), float(cx + hh * 0.13), float(top + hh)))
     cv2.circle(frame, (int(cx), int(top + head_r)), head_r, c, -1)
     cv2.rectangle(
         frame,
@@ -413,14 +424,24 @@ def render(name: str, out_dir: Path, preview: bool = False) -> Scenario:
     )
     n = int(sc.duration * FPS)
     first = None
+    per_frame: list[dict] = []
     for i in range(n):
         t = i * dt
         frame = _background()
+        _FRAME_BOXES.clear()
         step(t, frame)
+        per_frame.append({"t": round(t, 4), "boxes": list(_FRAME_BOXES)})
         if first is None:
             first = frame.copy()
         writer.write(frame)
     writer.release()
+
+    # Exact geometry, not estimated — this is what makes these clips usable as a
+    # reasoning-layer benchmark rather than only a visual aid.
+    (out_dir / f"{name}_boxes.json").write_text(
+        json.dumps({"video": f"{name}.mp4", "fps": FPS, "w": W, "h": H, "frames": per_frame})
+        + "\n"
+    )
 
     if preview and first is not None:
         cv2.imwrite(str(out_dir / f"{name}_frame0.png"), first)

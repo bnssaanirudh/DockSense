@@ -236,6 +236,25 @@ def foot_overlap(ctx: "FrameContext", person_id: int, product_id: int) -> float:
     return g.intersection_area(foot, top) / max(g.area(foot), 1e-6)
 
 
+def motion_start_t(window: Sequence[TrackFeatures], *, min_speed: float) -> float:
+    """Time the motion began, not the start of the lookback window.
+
+    Detectors look back over a cooldown-length window, but the event did not
+    last that long. Reporting the window start inflates every event span, which
+    wrecks temporal IoU against ground truth and makes evidence clips begin
+    several seconds before anything happens. Walk back from the newest sample
+    while the track is still moving, and report where that run began.
+    """
+    if not window:
+        return 0.0
+    start = window[-1].t
+    for feat in reversed(window):
+        if (abs(feat.vx) + abs(feat.vy)) < min_speed:
+            break
+        start = feat.t
+    return start
+
+
 def travel_heights(window: Sequence[TrackFeatures], frame_h: int) -> tuple[float, float, float]:
     """Return dx, dy, and total travel in object-height units."""
     if len(window) < 2:

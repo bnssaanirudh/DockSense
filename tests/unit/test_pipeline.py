@@ -17,10 +17,12 @@ class FallingBoxDetector:
         return [Detection(cls="carton", role="product", conf=0.92, xyxy=(560.0, y, 640.0, y + 80.0))]
 
 
-def test_pipeline_writes_synthetic_drop_incident_to_store():
-    video_path = Path("data/test_tmp/pipeline_drop.mp4")
-    db_path = Path("data/test_tmp/pipeline_incidents.db")
-    clip_dir = Path("data/test_tmp/clips")
+def test_pipeline_writes_synthetic_drop_incident_to_store(tmp_path):
+    # tmp_path, not a fixed location: the store appends, so a shared path made
+    # this pass on a clean checkout and fail on the next run with a stale row.
+    video_path = tmp_path / "pipeline_drop.mp4"
+    db_path = tmp_path / "pipeline_incidents.db"
+    clip_dir = tmp_path / "clips"
     video_path.parent.mkdir(parents=True, exist_ok=True)
     _write_blank_video(video_path)
 

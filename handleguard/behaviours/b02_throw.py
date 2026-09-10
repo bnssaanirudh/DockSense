@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from handleguard.behaviours.base import BehaviourDetector, FrameContext, confidence_from, travel_heights
+from handleguard.behaviours.base import (
+    BehaviourDetector,
+    FrameContext,
+    confidence_from,
+    motion_start_t,
+    travel_heights,
+)
 
 
 class ThrowDetector(BehaviourDetector):
@@ -31,7 +37,7 @@ class ThrowDetector(BehaviourDetector):
                     self.event(
                         ctx,
                         (track_id,),
-                        start_t=window[0].t if window else ctx.t,
+                        start_t=motion_start_t(window, min_speed=float(self.cfg["min_speed"]) * 0.25),
                         severity=severity,
                         confidence=confidence_from(margin, ctx.tracks[track_id].conf),
                         evidence={
