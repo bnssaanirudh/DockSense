@@ -1,12 +1,13 @@
 {
+  "split": "tune",
   "dataset": "synthetic physics clips, exact perception injected",
   "measures": "reasoning layer only \u2014 tracking, temporal features, behaviours, dedup",
   "does_not_measure": "detection quality; that is validated separately on real CCTV",
-  "caveat": "Not a substitute for real footage of these behaviours.",
+  "caveat": "Both splits come from the same renderer, so a held-out score controls for threshold overfitting but NOT for bias in the generator. Not a substitute for real footage of these behaviours.",
   "iou_threshold": 0.3,
   "clips": {
-    "positives": 4,
-    "hard_negatives": 5
+    "total": 9,
+    "with_labelled_event": 5
   },
   "variants": {
     "baseline": {
@@ -70,7 +71,7 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.6254
+          "mean_temporal_iou": 0.5556
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -95,7 +96,7 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "mean_temporal_iou": 0.8187
+        "mean_temporal_iou": 0.8047
       }
     },
     "no_tracking": {
@@ -248,7 +249,7 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.5003
+          "mean_temporal_iou": 0.4444
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -273,7 +274,7 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "mean_temporal_iou": 0.7937
+        "mean_temporal_iou": 0.7825
       }
     },
     "no_event_graph": {
@@ -337,7 +338,7 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "mean_temporal_iou": 0.6254
+          "mean_temporal_iou": 0.5556
         },
         "unstable_stack": {
           "behaviour": "unstable_stack",
@@ -362,7 +363,7 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "mean_temporal_iou": 0.8187
+        "mean_temporal_iou": 0.8047
       }
     }
   }

@@ -1,116 +1,113 @@
 # Reasoning-layer evaluation
 
-Regenerate with:
-
 ```bash
-python scripts/render_synthetic.py
-python scripts/eval_reasoning.py --ablate
+python scripts/render_synthetic.py                      # both splits
+python scripts/eval_reasoning.py --split tune --ablate
+python scripts/eval_reasoning.py --split heldout --ablate
 ```
 
-Machine-readable results: `reasoning_eval.json`.
+Machine-readable: `reasoning_eval_tune.json`, `reasoning_eval_heldout.json`.
 
 ## What this measures
 
-The system has two halves that fail for different reasons:
+Two halves fail for different reasons and are measured separately:
 
-- **Perception** — YOLO-World finding boxes. Validated separately, on real CCTV.
-- **Reasoning** — tracking, temporal features, twelve behaviour detectors, dedup,
-  risk. Validated here.
+- **Perception** — YOLO-World finding boxes. Validated on real CCTV.
+- **Reasoning** — tracking, temporal features, twelve detectors, dedup, risk.
+  Validated here.
 
-This harness replays the renderer's own per-frame box geometry into the pipeline,
-so **perception error is zero by construction**. Every number below describes the
+The harness replays the renderer's own per-frame geometry into the pipeline, so
+**perception error is zero by construction**. Everything below describes the
 reasoning layer alone.
 
-Set: 5 labelled positives (drop, throw, drag, improper_stack, unstable_stack) and
-4 hard negatives (carry, gentle_place, good_stack, static). Temporal IoU 0.3.
+## The two splits, and why there are two
+
+The first version of this evaluation had one set of nine clips, and thresholds
+and detector rules were changed in response to failures on those exact clips. It
+scored **F1 1.000**, which is not a result — it is a measurement of how hard the
+thresholds had been pushed towards nine specific videos.
+
+So the renderer now samples its parameters instead of hard-coding them:
+
+| Split | Clips | What it is |
+|---|---:|---|
+| `tune` | 9 | One fixed draw. The clips development happened against. |
+| `heldout` | 27 | Three fresh draws per scenario — different release heights, launch speeds, lowering speeds, drag directions, stack offsets, and **carton sizes from 60 to 100 px**. Scored once. Never tuned against. |
+
+Varying carton size is the pointed one: every threshold in `behaviours.yaml` is
+in object-heights, so a 1.6× size change should be invisible. If any threshold is
+secretly in pixels, this is what exposes it.
+
+**What the held-out split controls for:** fitting thresholds to specific clips.
+
+**What it does not control for:** bias in the generator. Both splits come from
+the same renderer, the same physics, the same flat-rectangle look. A systematic
+error in how this file models handling appears identically in both. Only real
+footage closes that gap.
 
 ## Results (10 Sep 2026)
 
-| Variant | Precision | Recall | F1 |
-|---|---:|---:|---:|
-| baseline | 1.000 | 1.000 | **1.000** |
-| `no_tracking` | 0.000 | 0.000 | **0.000** |
-| `no_smoothing` | 1.000 | 1.000 | 1.000 |
-| `no_event_graph` | 1.000 | 1.000 | 1.000 |
+| Variant | tune (n=9) | **heldout (n=27)** |
+|---|---:|---:|
+| baseline | 1.000 | **0.875** |
+| `no_tracking` | 0.000 | **0.000** |
+| `no_smoothing` | 1.000 | **0.812** |
+| `no_event_graph` | 1.000 | 0.875 |
 
-Per-clip predictions:
+Held-out baseline: precision **0.824**, recall **0.933**, mean temporal IoU 0.77,
+over 15 labelled events and 12 hard negatives.
 
-```
-drop.mp4            -> drop
-throw.mp4           -> throw
-drag.mp4            -> drag
-improper_stack.mp4  -> improper_stack
-unstable_stack.mp4  -> unstable_stack
-carry.mp4           -> (none)
-gentle_place.mp4    -> (none)
-good_stack.mp4      -> (none)
-static.mp4          -> (none)
-```
+**Quote the 0.875, not the 1.000.** The 0.125 gap between them is the honest
+measure of how much the tune number was inflated by having been tuned on.
 
-## Reading these honestly
+Per behaviour, held out:
 
-**A 1.000 is not an accuracy claim, and treating it as one would be wrong.**
+| Behaviour | TP | FP | FN | n | Precision | Recall |
+|---|---:|---:|---:|---:|---:|---:|
+| drop | 3 | 0 | 0 | 3 | 1.000 | 1.000 |
+| improper_stack | 3 | 0 | 0 | 3 | 1.000 | 1.000 |
+| unstable_stack | 3 | 0 | 0 | 3 | 1.000 | 1.000 |
+| drag | 2 | 0 | 1 | 3 | 1.000 | 0.667 |
+| throw | 3 | 3 | 0 | 3 | 0.500 | 1.000 |
 
-The set has nine clips. Every threshold and several detector rules were changed
-*in response to failures on these exact clips*, so the thing being measured and
-the thing being optimised now share a generating function. That is the oracle
-problem, and it is the single largest methodological weakness in this project.
-The number says the reasoning logic is self-consistent on the cases it was
-debugged against. It says nothing about a warehouse.
+## Ablations
 
-What the run is genuinely good for:
+**`no_tracking` → 0.000 on both splits.** Strip persistent identity and nothing
+fires at all, because every behaviour here is defined over a sequence. This is
+the row that is hard to game and the direct evidence for the central claim.
 
-- **It found real defects that no test caught.** See below — the failures were
-  informative even though the final score is not.
-- **`no_tracking` collapsing to 0.000** is the one row that is hard to game. Strip
-  persistent identity and nothing fires at all, because every behaviour here is
-  defined over a sequence. That is direct evidence for the central design claim.
+**`no_smoothing` → 0.875 → 0.812, but only on the held-out split.** On the tune
+split it showed no delta at all, and the earlier report said so honestly while
+noting the clips carried no jitter for smoothing to remove. Varying carton size
+and speed introduced exactly that jitter, and the smoothing window now earns its
+place. A mechanism whose value only appears once the inputs vary is worth knowing
+about — and it is a small warning about how much the fixed tune split was hiding.
 
-What it is not:
+**`no_event_graph` → no delta.** Expected: the graph feeds the *risk score*, not
+event detection, so event F1 is the wrong instrument. Reported rather than
+dropped.
 
-- Not a field accuracy figure. **Real footage of these behaviours does not exist
-  yet**, and until it does no per-behaviour precision/recall belongs in a slide.
-- Not a perception result. YOLO-World correctly returns nothing on flat
-  rectangles; running it here would measure the renderer's photorealism.
+## Known failure modes (held out, not fixed)
 
-`no_smoothing` and `no_event_graph` show no delta, reported rather than dropped.
-These clips carry zero detector jitter for smoothing to remove, and the event
-graph feeds the *risk score* rather than event detection, so event F1 is the
-wrong instrument for it. A switch that changes nothing is worth knowing about.
+These were left alone deliberately. Tuning them away after seeing them would turn
+the held-out split into a second tuning set and destroy the only defensible
+number in this document.
 
-## Defects this run exposed
-
-Listed because the bugs are the actual output of the exercise.
-
-1. **Tracked boxes were offset by half their own size.** `_ByteTrackResults.xywh`
-   returned top-left-based `(x, y, w, h)`; BYTETracker feeds that straight into
-   `xywh2ltwh`, which expects centre-based. Invisible to relative measures like
-   fall distance — which is why B01 passed — but it silently broke every absolute
-   one: floor gap, zone containment, support geometry.
-2. **Horizontal distances were scaled by frame height.** `travel_heights` used the
-   frame height for both axes, but `cx` is normalised by width. On 16:9 every
-   horizontal travel read 0.5625× its true value, so a 1.9-object-height drag
-   measured 1.06 and never crossed its 1.5 threshold.
-3. **"Sustained" meant "the track has existed this long."** Five static-geometry
-   detectors called `sustained_seconds(window, lambda f: True)`, which measures
-   track age, not how long the *condition* held. A stack still being lowered
-   satisfied it. Replaced with `SustainedCondition`, which clocks the actual
-   configuration and restarts after a lapse.
-4. **B05's two thresholds were mutually unsatisfiable.** Overlap was measured as a
-   fraction of the *upper* box's width, so a larger `area_ratio` — the very thing
-   B05 exists to catch — forced that fraction down. Now measured against the
-   support below, where "covers the whole thing" reads as 1.0.
-5. **Suppression was always one frame late.** `recent_events` was snapshotted once
-   per frame, so a detector deferring to a more specific one still emitted a
-   duplicate on the frame they both first fired. Now refreshed per detector, with
-   registry order putting the specific detector first.
-6. **The renderer's own labels disagreed with its physics.** The stacking clips
-   started their box 300 px above the target at 80 px/s, so the stack existed for
-   the last 0.25 s of a 5 s clip while the label claimed 3 s of it — and one of
-   them started *below* its target and never moved at all. The label described the
-   intent correctly, so the physics moved to match rather than the threshold.
+1. **`throw` precision 0.500 — a track ID switch mid-flight.** On the two fastest
+   throws the tracker lost the box at the velocity discontinuity of release and
+   re-identified it a few frames later, producing two throw events on two track
+   ids. Dedup cannot merge them because dedup keys on track id. This is the same
+   class of defect as the original B01 failure, now at high horizontal speed.
+2. **One carried box read as a throw.** B02 infers "unsupported" from the absence
+   of person-box overlap. At a high carry height the person box stops overlapping
+   the carton, so a carry at speed satisfies the throw condition. The proxy is
+   the weakness, not the threshold.
+3. **`drag` recall 0.667 — one slow drag missed.** The slowest sampled drag on the
+   largest sampled carton travels under `min_distance_heights` within the
+   detector's window. Whether 1.5 object-heights is the right bar is a question
+   for real footage, not for this generator.
 
 ## Next
 
-Everything here is blocked behind the same thing: **real recorded footage**, held
-out, scored once. The recording brief is in `STATE.md`.
+All of it is blocked behind the same thing: **real recorded footage**, held out,
+scored once. Brief in `STATE.md`.

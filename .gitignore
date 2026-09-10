@@ -33,6 +33,11 @@ data/synthetic/*
 !data/**/.gitkeep
 !data/raw/takes.csv
 !data/synthetic/ground_truth.csv
+!data/synthetic/heldout/
+!data/synthetic/heldout/ground_truth.csv
+data/synthetic/heldout/*.mp4
+data/synthetic/heldout/*.json
+data/synthetic/heldout/*.png
 # Detector weights ARE committed — the offline demo depends on them being
 # in the clone. Only ignore incidental checkpoints from elsewhere.
 models/**/checkpoints/

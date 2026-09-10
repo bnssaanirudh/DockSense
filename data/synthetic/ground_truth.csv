@@ -1,10 +1,10 @@
 video,behaviour,t_start,t_end,note
-drop.mp4,drop,1.000,1.500,"release at ~1.4 m, free fall to floor"
-gentle_place.mp4,,,,"controlled lowering, ~0.25 m/s"
-throw.mp4,throw,1.000,1.533,launched at ~3 m/s horizontal
-drag.mp4,drag,1.000,4.000,1.5 m of floor-contact translation
-carry.mp4,,,,"same translation, carried at knee height"
+drop.mp4,drop,1.000,1.500,free fall to floor
+gentle_place.mp4,,,,controlled lowering
+throw.mp4,throw,1.000,1.600,launched horizontally
+drag.mp4,drag,1.000,4.000,floor-contact translation
+carry.mp4,,,,"same translation, carried clear of the floor"
 improper_stack.mp4,improper_stack,2.000,5.000,large on small
 good_stack.mp4,,,,"small on large, correct order"
-unstable_stack.mp4,unstable_stack,2.000,5.000,support ratio ~0.3
+unstable_stack.mp4,unstable_stack,2.000,5.000,most of the box unsupported
 static.mp4,,,,nothing moves for 6 s

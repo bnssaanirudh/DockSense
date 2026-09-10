@@ -41,6 +41,7 @@ import csv
 import json
 import math
 import sys
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -237,10 +238,90 @@ def _carton(x, bottom_y, w=70, h=80, tone=0) -> Box:
     return Box(x=x, y=bottom_y - h, w=w, h=h, tone=tone)
 
 
-def scenario_drop(dt: float):
+# --------------------------------------------------------------------------- #
+# Scenario parameters and the tune / heldout split
+# --------------------------------------------------------------------------- #
+#
+# Every scenario reads its numbers from a Params draw instead of hard-coding
+# them. The "tune" split is a fixed draw — the clips thresholds were developed
+# against. The "heldout" split samples a *different* region of the same space:
+# different release heights, launch speeds, drag directions, stack offsets, and
+# crucially different carton sizes, which is what actually exercises the claim
+# that thresholds are object-height normalised rather than pixel-tuned.
+#
+# What this controls for: tuning thresholds until they fit one specific set of
+# clips. That was a real problem — the reasoning F1 hit 1.000 on the tune split
+# precisely because the split had been used for debugging.
+#
+# What it does NOT control for: bias in the generator itself. Both splits come
+# from the same renderer, the same physics and the same flat-rectangle look, so
+# a systematic error in how this file models handling appears identically in
+# both. Only real footage closes that gap, and the held-out number must always
+# be quoted with that sentence attached.
+
+TUNE = "tune"
+HELDOUT = "heldout"
+
+#: Draws per scenario in the held-out split. The tune split is one fixed draw.
+HELDOUT_DRAWS = 3
+
+
+@dataclass
+class Params:
+    """One scenario's sampled numbers. Units: px, px/s, seconds."""
+
+    carton_h: float = 80.0
+    carton_w: float = 70.0
+    release_height: float = 280.0
+    lower_speed: float = 0.25 * PX_PER_M
+    throw_vx: float = 3.0 * PX_PER_M
+    throw_vy: float = -0.8 * PX_PER_M
+    drag_speed: float = 0.5 * PX_PER_M
+    drag_dir: float = 1.0
+    carry_height: float = 180.0
+    small: tuple[float, float] = (60.0, 60.0)
+    large: tuple[float, float] = (140.0, 110.0)
+    overhang: float = 0.77  # upper box offset, as a fraction of its own width
+    origin_x: float = 600.0
+
+
+def _params(split: str, seed: int) -> Params:
+    """Fixed defaults for the tune split; a fresh draw for the held-out one."""
+    if split == TUNE:
+        return Params()
+    rng = np.random.default_rng(seed)
+    u = rng.uniform
+    # Carton size moves by up to 1.6x. Object-height normalisation says this
+    # should not matter; if a threshold is secretly in pixels, this is what
+    # exposes it.
+    h = float(u(60.0, 100.0))
+    w = float(h * u(0.75, 1.05))
+    return Params(
+        carton_h=h,
+        carton_w=w,
+        release_height=float(u(2.2, 4.0) * h),
+        lower_speed=float(u(0.15, 0.35) * PX_PER_M),
+        throw_vx=float(u(2.0, 4.2) * PX_PER_M),
+        throw_vy=float(-u(0.3, 1.3) * PX_PER_M),
+        drag_speed=float(u(0.3, 0.8) * PX_PER_M),
+        drag_dir=float(rng.choice([-1.0, 1.0])),
+        carry_height=float(u(1.4, 2.8) * h),
+        small=(float(u(50, 80)), float(u(50, 80))),
+        large=(float(u(130, 190)), float(u(95, 135))),
+        overhang=float(u(0.55, 0.8)),  # fraction of the upper box's width
+        origin_x=float(u(320, 700)),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Scenarios — each returns (scenario, per-frame simulation callback)
+# --------------------------------------------------------------------------- #
+
+
+def scenario_drop(dt: float, p: Params):
     """Box released at chest height, falls freely, impacts floor."""
-    sc = Scenario("drop", "drop", 4.0, "release at ~1.4 m, free fall to floor")
-    box = _carton(600, FLOOR_Y - 280)  # held above the floor
+    sc = Scenario("drop", "drop", 4.0, "free fall to floor")
+    box = _carton(p.origin_x, FLOOR_Y - p.release_height, w=p.carton_w, h=p.carton_h)
     release_t, impact_t = 1.0, None
 
     def step(t: float, frame: np.ndarray):
@@ -251,99 +332,113 @@ def scenario_drop(dt: float):
         if hit and impact_t is None:
             impact_t = t
             sc.events.append((release_t, t))
-        _draw_person(frame, 520, FLOOR_Y - 320)
+        _draw_person(frame, p.origin_x - 80, FLOOR_Y - 320)
         _draw(frame, box)
 
     return sc, step
 
 
-def scenario_gentle_place(dt: float):
+def scenario_gentle_place(dt: float, p: Params):
     """HARD NEGATIVE. Same start height, lowered under control. Must not fire."""
-    sc = Scenario("gentle_place", None, 4.0, "controlled lowering, ~0.25 m/s")
-    box = _carton(600, FLOOR_Y - 280)
-    speed = 0.25 * PX_PER_M  # px/s, an order of magnitude below free fall
+    sc = Scenario("gentle_place", None, 4.0, "controlled lowering")
+    box = _carton(p.origin_x, FLOOR_Y - p.release_height, w=p.carton_w, h=p.carton_h)
 
     def step(t: float, frame: np.ndarray):
         if t >= 1.0 and box.bottom < FLOOR_Y:
-            box.y = min(box.y + speed * dt, FLOOR_Y - box.h)
-        _draw_person(frame, 520, FLOOR_Y - 320)
+            box.y = min(box.y + p.lower_speed * dt, FLOOR_Y - box.h)
+        _draw_person(frame, p.origin_x - 80, FLOOR_Y - 320)
         _draw(frame, box)
 
     return sc, step
 
 
-def scenario_throw(dt: float):
+def scenario_throw(dt: float, p: Params):
     """Box launched horizontally, follows a parabola, lands away from thrower."""
-    sc = Scenario("throw", "throw", 4.0, "launched at ~3 m/s horizontal")
-    box = _carton(360, FLOOR_Y - 240)
+    sc = Scenario("throw", "throw", 4.0, "launched horizontally")
+    # Launch from the left so the parabola stays in frame at any speed.
+    box = _carton(300.0, FLOOR_Y - p.release_height, w=p.carton_w, h=p.carton_h)
     release_t = 1.0
 
     def step(t: float, frame: np.ndarray):
         if t >= release_t and not box.falling and box.bottom < FLOOR_Y - 1:
             box.falling = True
-            box.vx = 3.0 * PX_PER_M
-            box.vy = -0.8 * PX_PER_M  # slight upward toss
+            box.vx = p.throw_vx
+            box.vy = p.throw_vy
         hit = box.step(dt, FLOOR_Y)
         if hit:
             sc.events.append((release_t, t))
-        _draw_person(frame, 300, FLOOR_Y - 320)
+        _draw_person(frame, 240, FLOOR_Y - 320)
         _draw(frame, box)
 
     return sc, step
 
 
-def scenario_drag(dt: float):
+def scenario_drag(dt: float, p: Params):
     """Box slid along the floor, never lifted."""
-    sc = Scenario("drag", "drag", 5.0, "1.5 m of floor-contact translation")
-    box = _carton(260, FLOOR_Y)
+    sc = Scenario("drag", "drag", 5.0, "floor-contact translation")
+    start_x = 260.0 if p.drag_dir > 0 else 900.0
+    box = _carton(start_x, FLOOR_Y, w=p.carton_w, h=p.carton_h)
     t0, t1 = 1.0, 4.0
-    speed = 0.5 * PX_PER_M
 
     def step(t: float, frame: np.ndarray):
         if t0 <= t <= t1:
-            box.x += speed * dt
+            box.x += p.drag_speed * p.drag_dir * dt
             box.y = FLOOR_Y - box.h  # stays pinned to the floor
-        _draw_person(frame, box.x - 70, FLOOR_Y - 320)
+        _draw_person(frame, box.x - 70 * p.drag_dir, FLOOR_Y - 320)
         _draw(frame, box)
 
     sc.events.append((t0, t1))
     return sc, step
 
 
-def scenario_carry(dt: float):
+def scenario_carry(dt: float, p: Params):
     """HARD NEGATIVE for drag. Same horizontal travel, but lifted clear."""
-    sc = Scenario("carry", None, 5.0, "same translation, carried at knee height")
-    box = _carton(260, FLOOR_Y - 180)
-    speed = 0.5 * PX_PER_M
+    sc = Scenario("carry", None, 5.0, "same translation, carried clear of the floor")
+    start_x = 260.0 if p.drag_dir > 0 else 900.0
+    box = _carton(start_x, FLOOR_Y - p.carry_height, w=p.carton_w, h=p.carton_h)
 
     def step(t: float, frame: np.ndarray):
         if 1.0 <= t <= 4.0:
-            box.x += speed * dt
-        _draw_person(frame, box.x - 70, FLOOR_Y - 320)
+            box.x += p.drag_speed * p.drag_dir * dt
+        _draw_person(frame, box.x - 70 * p.drag_dir, FLOOR_Y - 320)
         _draw(frame, box)
 
     return sc, step
 
 
-# Placement descent: 0.4 m/s = 80 px/s starting at t=1.0, so the box must start
-# 80 px clear of its target to land at t=2.0 — the moment the ground-truth label
-# says the stack exists. It started 300 px clear, which takes 3.75 s: the stack
-# was only real for the last 0.25 s of a 5 s clip while the label claimed 3 s of
-# it. The label was right about the intent and the physics disagreed, so the
-# physics is what moved.
-PLACEMENT_RISE = 80.0  # px above the target surface at t=0 (y grows downward)
+# Placement descent: the box must start PLACEMENT_RISE px clear of its target and
+# arrive at t=2.0, the moment the ground-truth label says the stack exists. It
+# used to start 300 px clear at 80 px/s, which takes 3.75 s: the stack was only
+# real for the last 0.25 s of a 5 s clip while the label claimed 3 s of it, and
+# one scenario started *below* its target and never moved at all. The label was
+# right about the intent, so the physics is what moved.
+PLACE_SPEED = 0.4 * PX_PER_M  # px/s, a controlled lowering
+PLACE_SECONDS = 1.0           # from t=1.0 to the labelled t=2.0
+PLACEMENT_RISE = PLACE_SPEED * PLACE_SECONDS  # px above target at t=0
 
 
-def scenario_improper_stack(dt: float):
+def _placement(lower: Box, upper_w: float, upper_h: float, upper_x: float, tone: int):
+    """Upper box positioned to land on `lower` exactly at t=2.0."""
+    target = lower.y - upper_h
+    return Box(x=upper_x, y=target - PLACEMENT_RISE, w=upper_w, h=upper_h, tone=tone)
+
+
+def _lower_onto(upper: Box, lower: Box, t: float, dt: float) -> None:
+    target = lower.y - upper.h
+    if t >= 1.0 and upper.y < target:
+        upper.y = min(upper.y + PLACE_SPEED * dt, target)
+
+
+def scenario_improper_stack(dt: float, p: Params):
     """Large carton placed on top of a small one."""
     sc = Scenario("improper_stack", "improper_stack", 5.0, "large on small")
-    small = _carton(600, FLOOR_Y, w=60, h=60, tone=1)
-    large = Box(x=560, y=(small.y - 110) - PLACEMENT_RISE, w=140, h=110, tone=2)
+    sw, sh = p.small
+    lw, lh = p.large
+    small = _carton(600, FLOOR_Y, w=sw, h=sh, tone=1)
+    large = _placement(small, lw, lh, 600 - (lw - sw) / 2.0, tone=2)
 
     def step(t: float, frame: np.ndarray):
-        target = small.y - large.h
-        if t >= 1.0 and large.y < target:
-            large.y = min(large.y + 0.4 * PX_PER_M * dt, target)
+        _lower_onto(large, small, t, dt)
         _draw(frame, small)
         _draw(frame, large)
 
@@ -351,32 +446,32 @@ def scenario_improper_stack(dt: float):
     return sc, step
 
 
-def scenario_good_stack(dt: float):
+def scenario_good_stack(dt: float, p: Params):
     """HARD NEGATIVE. Small on large, well centred. Must stay silent."""
     sc = Scenario("good_stack", None, 5.0, "small on large, correct order")
-    large = _carton(560, FLOOR_Y, w=140, h=110, tone=2)
-    small = Box(x=600, y=(large.y - 60) - PLACEMENT_RISE, w=60, h=60, tone=1)
+    sw, sh = p.small
+    lw, lh = p.large
+    large = _carton(560, FLOOR_Y, w=lw, h=lh, tone=2)
+    small = _placement(large, sw, sh, 560 + (lw - sw) / 2.0, tone=1)
 
     def step(t: float, frame: np.ndarray):
-        target = large.y - small.h
-        if t >= 1.0 and small.y < target:
-            small.y = min(small.y + 0.4 * PX_PER_M * dt, target)
+        _lower_onto(small, large, t, dt)
         _draw(frame, large)
         _draw(frame, small)
 
     return sc, step
 
 
-def scenario_unstable_stack(dt: float):
+def scenario_unstable_stack(dt: float, p: Params):
     """Upper carton overhangs its support by well over half its width."""
-    sc = Scenario("unstable_stack", "unstable_stack", 5.0, "support ratio ~0.3")
-    lower = _carton(560, FLOOR_Y, w=140, h=110, tone=2)
-    upper = Box(x=560 + 100, y=(lower.y - 80) - PLACEMENT_RISE, w=130, h=80, tone=0)
+    sc = Scenario("unstable_stack", "unstable_stack", 5.0, "most of the box unsupported")
+    lw, lh = p.large
+    uw, uh = lw * 0.93, p.carton_h
+    lower = _carton(560, FLOOR_Y, w=lw, h=lh, tone=2)
+    upper = _placement(lower, uw, uh, 560 + uw * p.overhang, tone=0)
 
     def step(t: float, frame: np.ndarray):
-        target = lower.y - upper.h
-        if t >= 1.0 and upper.y < target:
-            upper.y = min(upper.y + 0.4 * PX_PER_M * dt, target)
+        _lower_onto(upper, lower, t, dt)
         _draw(frame, lower)
         _draw(frame, upper)
 
@@ -384,17 +479,19 @@ def scenario_unstable_stack(dt: float):
     return sc, step
 
 
-def scenario_static(dt: float):
+def scenario_static(dt: float, p: Params):
     """HARD NEGATIVE. Nothing moves. Must produce zero incidents.
 
     The single most valuable clip in this set — 'here is normal operation and
     the system stayed silent' answers the question every judge is privately
     asking."""
     sc = Scenario("static", None, 6.0, "nothing moves for 6 s")
+    lw, lh = p.large
+    sw, sh = p.small
     boxes = [
-        _carton(300, FLOOR_Y, tone=0),
-        _carton(420, FLOOR_Y, w=140, h=110, tone=2),
-        _carton(450, FLOOR_Y - 110, w=60, h=60, tone=1),
+        _carton(300, FLOOR_Y, w=p.carton_w, h=p.carton_h, tone=0),
+        _carton(420, FLOOR_Y, w=lw, h=lh, tone=2),
+        _carton(420 + (lw - sw) / 2.0, FLOOR_Y - lh, w=sw, h=sh, tone=1),
     ]
 
     def step(t: float, frame: np.ndarray):
@@ -422,11 +519,19 @@ SCENARIOS = {
 # --------------------------------------------------------------------------- #
 
 
-def render(name: str, out_dir: Path, preview: bool = False) -> Scenario:
+def render(
+    name: str,
+    out_dir: Path,
+    *,
+    params: Params,
+    stem: str | None = None,
+    preview: bool = False,
+) -> tuple[str, Scenario]:
     dt = 1.0 / FPS
-    sc, step = SCENARIOS[name](dt)
+    sc, step = SCENARIOS[name](dt, params)
+    stem = stem or name
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{name}.mp4"
+    path = out_dir / f"{stem}.mp4"
 
     writer = cv2.VideoWriter(
         str(path), cv2.VideoWriter_fourcc(*"mp4v"), FPS, (W, H)
@@ -447,52 +552,83 @@ def render(name: str, out_dir: Path, preview: bool = False) -> Scenario:
 
     # Exact geometry, not estimated — this is what makes these clips usable as a
     # reasoning-layer benchmark rather than only a visual aid.
-    (out_dir / f"{name}_boxes.json").write_text(
-        json.dumps({"video": f"{name}.mp4", "fps": FPS, "w": W, "h": H, "frames": per_frame})
+    (out_dir / f"{stem}_boxes.json").write_text(
+        json.dumps({"video": f"{stem}.mp4", "fps": FPS, "w": W, "h": H, "frames": per_frame})
         + "\n"
     )
 
     if preview and first is not None:
-        cv2.imwrite(str(out_dir / f"{name}_frame0.png"), first)
+        cv2.imwrite(str(out_dir / f"{stem}_frame0.png"), first)
 
-    return sc
+    return stem, sc
+
+
+def _plan(split: str, only: str | None) -> list[tuple[str, str, Params]]:
+    """(scenario, output stem, params) for every clip in a split."""
+    names = [only] if only else list(SCENARIOS)
+    if split == TUNE:
+        return [(name, name, _params(TUNE, 0)) for name in names]
+    out = []
+    for name in names:
+        for draw in range(HELDOUT_DRAWS):
+            # Seed from the scenario name so adding a scenario cannot reshuffle
+            # the draws of the existing ones — a held-out set that changes under
+            # you is not held out.
+            out.append((name, f"{name}_{draw + 1}", _params(HELDOUT, _seed(name, draw))))
+    return out
+
+
+def _seed(name: str, draw: int) -> int:
+    """Stable across processes, unlike hash()."""
+    return zlib.crc32(f"{name}:{draw}".encode()) & 0x7FFFFFFF
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", help="render just this scenario")
     ap.add_argument("--preview", action="store_true", help="also dump frame 0 as PNG")
+    ap.add_argument(
+        "--split",
+        choices=[TUNE, HELDOUT, "both"],
+        default="both",
+        help="tune = the clips thresholds were developed against; "
+        "heldout = a different draw, scored once, never tuned on",
+    )
     ap.add_argument("--out", default="data/synthetic")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parent.parent
-    out_dir = root / args.out
-    names = [args.only] if args.only else list(SCENARIOS)
+    base = root / args.out
+    splits = [TUNE, HELDOUT] if args.split == "both" else [args.split]
 
-    rows = []
-    for name in names:
-        sc = render(name, out_dir, preview=args.preview)
-        kind = sc.behaviour or "NEGATIVE"
-        if sc.events:
-            for t0, t1 in sc.events:
-                rows.append([f"{name}.mp4", sc.behaviour, f"{t0:.3f}", f"{t1:.3f}", sc.note])
-            spans = ", ".join(f"{a:.2f}-{b:.2f}s" for a, b in sc.events)
-            print(f"  {name:16s} {kind:16s} {spans}")
-        else:
-            rows.append([f"{name}.mp4", "", "", "", sc.note])
-            print(f"  {name:16s} {kind:16s} (no event expected)")
+    for split in splits:
+        out_dir = base if split == TUNE else base / HELDOUT
+        rows = []
+        print(f"\n{split}:")
+        for name, stem, params in _plan(split, args.only):
+            _, sc = render(name, out_dir, params=params, stem=stem, preview=args.preview)
+            kind = sc.behaviour or "NEGATIVE"
+            if sc.events:
+                for t0, t1 in sc.events:
+                    rows.append([f"{stem}.mp4", sc.behaviour, f"{t0:.3f}", f"{t1:.3f}", sc.note])
+                spans = ", ".join(f"{a:.2f}-{b:.2f}s" for a, b in sc.events)
+                print(f"  {stem:18s} {kind:16s} {spans}")
+            else:
+                rows.append([f"{stem}.mp4", "", "", "", sc.note])
+                print(f"  {stem:18s} {kind:16s} (no event expected)")
 
-    gt = out_dir / "ground_truth.csv"
-    write_header = not gt.exists() or args.only is None
-    mode = "w" if write_header else "a"
-    with open(gt, mode, newline="") as fh:
-        wr = csv.writer(fh)
-        if write_header:
-            wr.writerow(["video", "behaviour", "t_start", "t_end", "note"])
-        wr.writerows(rows)
+        gt = out_dir / "ground_truth.csv"
+        write_header = not gt.exists() or args.only is None
+        mode = "w" if write_header else "a"
+        with open(gt, mode, newline="") as fh:
+            wr = csv.writer(fh)
+            if write_header:
+                wr.writerow(["video", "behaviour", "t_start", "t_end", "note"])
+            wr.writerows(rows)
+        print(f"  -> {len(rows)} rows in {gt}")
 
-    print(f"\nwrote {len(names)} clips + ground_truth.csv to {out_dir}")
-    print("Ground truth is exact: release and impact frames are known, not estimated.")
+    print("\nGround truth is exact: release and impact frames are known, not estimated.")
+    print("Tune on the tune split. Score the heldout split ONCE, and do not tune after.")
     return 0
 
 

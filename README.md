@@ -69,7 +69,7 @@ Video is gitignored. After cloning:
 
 ```bash
 python scripts/fetch_public_data.py   # ~1.9 GB public CCTV, CC BY 4.0
-python scripts/render_synthetic.py    # deterministic synthetic physics clips
+python scripts/render_synthetic.py    # synthetic physics clips: tune + heldout splits
 ```
 
 ### Run the pipeline
@@ -78,8 +78,7 @@ python scripts/render_synthetic.py    # deterministic synthetic physics clips
 python -c "from handleguard.pipeline import run; \
   print(run('data/public/tune/walkway_violation/0_tr1.mp4', write_clips=False))"
 
-python scripts/run_ablations.py --videos data/synthetic/*.mp4 \
-    --ground-truth data/synthetic/ground_truth.csv
+python scripts/eval_reasoning.py --split heldout --ablate   # reasoning layer
 python scripts/evaluate_events.py --predictions-db handleguard.db
 pytest -q
 ```
@@ -108,18 +107,25 @@ says which is which.
 
 | ID | Behaviour | Basis | Confidence in it |
 |---|---|---|---|
-| B01 | Product dropped | Vertical kinematics + impact deceleration | Strong |
-| B02 | Product thrown | Horizontal velocity while unsupported | Strong |
-| B05 | Improper stack (large on small) | Two-box area + overlap geometry | Strong |
-| B06 | Unstable stack | Support ratio below threshold, sustained | Strong |
+| B01 | Product dropped | Vertical kinematics + impact deceleration | Strong — held-out P/R 1.000 |
+| B02 | Product thrown | Horizontal velocity while unsupported | Moderate — held-out precision 0.500 |
+| B05 | Improper stack (large on small) | Two-box area + overlap geometry | Strong — held-out P/R 1.000 |
+| B06 | Unstable stack | Support ratio below threshold, sustained | Strong — held-out P/R 1.000 |
 | B07 | Product outside designated zone | Zone polygon + dwell time | Strong |
 | B08 | Pallet overhang | Product footprint vs pallet footprint | Strong |
-| B03 | Product dragged | Floor proximity + horizontal travel | Moderate |
+| B03 | Product dragged | Floor proximity + horizontal travel | Moderate — held-out recall 0.667 |
 | B09 | Stepping on product | Box contact geometry, no pose model | Moderate |
 | B12 | Unsafe-surface zone | Operator-configured zone, not visual | Moderate |
 | B04 | Rough handling | Acceleration proxy — sensitive to tracker jitter, overlaps B01/B02 | **Lightly validated** |
 | B10 | Large item handled without equipment present | Size proxy; **weight is not observable from video** | **Lightly validated** |
 | B11 | Unsafe loading sequence | Ordered event pairs; inherits all upstream error | **Lightly validated** |
+
+Rows marked with a held-out number were scored on the 27-clip synthetic
+held-out split (reasoning only, perception held perfect) — see
+[Honest scope](#honest-scope). B02 loses precision to a track ID switch at the
+velocity discontinuity of a fast throw, and to inferring "unsupported" from the
+absence of person-box overlap, which a high carry also satisfies. Rows with no
+number were not exercised by that split at all.
 
 The three *lightly validated* rows are proxy heuristics with confounds we can
 name, so we name them. B04 suppresses itself when B01/B02 already claimed the
@@ -146,43 +152,55 @@ downscaled to 1280×720, `imgsz=640`:
 | Tracking + features + behaviours | **< 1 ms combined** |
 | Detections on real CCTV | 57 and 52 on sample frames, correctly classed |
 | Offline operation | verified with sockets blocked — zero outbound connections |
-| Tests | 140 passing |
+| Tests | 143 passing |
 
 Full breakdown in `artifacts/evaluation/latency.json`. Detection is ~99% of
 pipeline time, which means **the temporal reasoning layer is effectively free** —
 the part that differentiates this system costs under a millisecond a frame.
 
-**Reasoning layer, measured.** On physics-rendered clips with exact box geometry
-injected as perception (5 positives, 4 hard negatives, temporal IoU 0.3):
+**Reasoning layer, measured on a held-out split.** The renderer samples its
+parameters, so there are two sets: a `tune` split of 9 clips that development
+happened against, and a **held-out** split of 27 clips drawn separately —
+different release heights, launch speeds, drag directions, stack offsets, and
+carton sizes from 60 to 100 px. The held-out split was scored once and never
+tuned against. Perception is held perfect by construction (the renderer's own box
+geometry is replayed in), so this measures reasoning alone. Temporal IoU 0.3.
 
-| Variant | Precision | Recall | F1 |
-|---|---:|---:|---:|
-| baseline | 1.000 | 1.000 | **1.000** |
-| `no_tracking` | 0.000 | 0.000 | **0.000** |
-| `no_smoothing` | 1.000 | 1.000 | 1.000 |
-| `no_event_graph` | 1.000 | 1.000 | 1.000 |
+| Variant | tune (n=9) | **heldout (n=27)** |
+|---|---:|---:|
+| baseline | 1.000 | **0.875** |
+| `no_tracking` | 0.000 | **0.000** |
+| `no_smoothing` | 1.000 | **0.812** |
+| `no_event_graph` | 1.000 | 0.875 |
 
-**Read the 1.000 as "the logic is self-consistent", not as accuracy.** Nine clips,
-and several thresholds and detector rules were changed in response to failures on
-these exact clips — the thing measured and the thing optimised share a generating
-function. That is an oracle advantage and we are naming it rather than quoting the
-number bare.
+Held-out baseline: precision **0.824**, recall **0.933**, over 15 labelled events
+and 12 hard negatives.
 
-The row that is hard to game is **`no_tracking` collapsing to zero**: remove
-persistent identity and nothing fires at all, because every behaviour here is
-defined over a sequence. That is the evidence for the central claim — the system
-detects sequences, not frames.
+**The number to quote is 0.875.** The tune split reads 1.000 because thresholds
+and detector rules were changed in response to failures on those nine specific
+clips; the 0.125 gap is the honest measure of how much that inflated it. Varying
+carton size is the pointed test — every threshold is in object-heights, so a 1.6×
+size change should be invisible, and any threshold secretly living in pixels
+shows up here.
 
-The run earned its keep by finding bugs, not by scoring: tracked boxes were offset
-by half their own size (a top-left/centre mix-up feeding ByteTrack), horizontal
-distances were scaled by frame height on both axes, and five detectors' "sustained
-for N seconds" gate was measuring track age rather than how long the condition
-held. All three were invisible to the 140 unit tests.
+**`no_tracking` collapsing to zero on both splits** is the row that is hard to
+game: remove persistent identity and nothing fires at all, because every
+behaviour is defined over a sequence. **`no_smoothing` costs 0.063 on the
+held-out split and nothing on the tune split** — the fixed clips carried no
+jitter for smoothing to remove, which is itself a warning about what a single
+fixed set hides. `no_event_graph` shows no delta; the graph feeds the *risk
+score*, not event detection, so event F1 is the wrong instrument for it.
 
-`no_smoothing` and `no_event_graph` show **no delta**, reported rather than hidden.
-These clips have zero detector jitter for smoothing to remove, and the event graph
-feeds the *risk score* rather than event detection, so event F1 is the wrong
-instrument for it. A flag that changes nothing is worth knowing about.
+Three failure modes were left unfixed on purpose, because tuning them away after
+seeing them would turn the held-out split into a second tuning set: a track ID
+switch at the velocity discontinuity of a fast throw (two events, two ids, dedup
+keys on id so it cannot merge them), a high carry reading as a throw because B02
+infers "unsupported" from the absence of person-box overlap, and one slow drag on
+a large carton falling under the distance threshold.
+
+**What a held-out split does not fix:** both splits come from the same renderer,
+so a systematic error in how it models handling appears in both. Only real
+footage closes that gap.
 
 Full report: `artifacts/evaluation/reasoning_eval.md`.
 

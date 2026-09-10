@@ -1,0 +1,28 @@
+video,behaviour,t_start,t_end,note
+drop_1.mp4,drop,1.000,1.467,free fall to floor
+drop_2.mp4,drop,1.000,1.433,free fall to floor
+drop_3.mp4,drop,1.000,1.500,free fall to floor
+gentle_place_1.mp4,,,,controlled lowering
+gentle_place_2.mp4,,,,controlled lowering
+gentle_place_3.mp4,,,,controlled lowering
+throw_1.mp4,throw,1.000,1.467,launched horizontally
+throw_2.mp4,throw,1.000,1.533,launched horizontally
+throw_3.mp4,throw,1.000,1.633,launched horizontally
+drag_1.mp4,drag,1.000,4.000,floor-contact translation
+drag_2.mp4,drag,1.000,4.000,floor-contact translation
+drag_3.mp4,drag,1.000,4.000,floor-contact translation
+carry_1.mp4,,,,"same translation, carried clear of the floor"
+carry_2.mp4,,,,"same translation, carried clear of the floor"
+carry_3.mp4,,,,"same translation, carried clear of the floor"
+improper_stack_1.mp4,improper_stack,2.000,5.000,large on small
+improper_stack_2.mp4,improper_stack,2.000,5.000,large on small
+improper_stack_3.mp4,improper_stack,2.000,5.000,large on small
+good_stack_1.mp4,,,,"small on large, correct order"
+good_stack_2.mp4,,,,"small on large, correct order"
+good_stack_3.mp4,,,,"small on large, correct order"
+unstable_stack_1.mp4,unstable_stack,2.000,5.000,most of the box unsupported
+unstable_stack_2.mp4,unstable_stack,2.000,5.000,most of the box unsupported
+unstable_stack_3.mp4,unstable_stack,2.000,5.000,most of the box unsupported
+static_1.mp4,,,,nothing moves for 6 s
+static_2.mp4,,,,nothing moves for 6 s
+static_3.mp4,,,,nothing moves for 6 s

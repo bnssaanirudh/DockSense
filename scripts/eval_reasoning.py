@@ -78,7 +78,7 @@ class ExactDetector:
 
 
 def predictions_for(video: Path, flags: PipelineFlags) -> list[EventLabel]:
-    boxes = SYNTH / f"{video.stem}_boxes.json"
+    boxes = video.parent / f"{video.stem}_boxes.json"
     if not boxes.is_file():
         raise SystemExit(f"missing {boxes} — run scripts/render_synthetic.py first")
     incidents = run(
@@ -114,13 +114,21 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--iou", type=float, default=0.3, help="temporal IoU for a match")
     ap.add_argument("--ablate", action="store_true", help="also run mechanism-off variants")
+    ap.add_argument(
+        "--split",
+        choices=["tune", "heldout"],
+        default="tune",
+        help="tune = the clips thresholds were developed against (a self-consistency "
+        "check, not accuracy); heldout = a different parameter draw, scored once",
+    )
     ap.add_argument("--out", type=Path, default=ROOT / "artifacts" / "evaluation")
     args = ap.parse_args()
 
-    videos = sorted(SYNTH.glob("*.mp4"))
+    split_dir = SYNTH if args.split == "tune" else SYNTH / "heldout"
+    videos = sorted(split_dir.glob("*.mp4"))
     if not videos:
-        raise SystemExit("no synthetic clips — run scripts/render_synthetic.py")
-    gt = labels_from_csv(SYNTH / "ground_truth.csv")
+        raise SystemExit(f"no clips in {split_dir} — run scripts/render_synthetic.py")
+    gt = labels_from_csv(split_dir / "ground_truth.csv")
 
     variants = {"baseline": PipelineFlags()}
     if args.ablate:
@@ -138,18 +146,25 @@ def main() -> int:
         m = res["micro"]
         print(f"  precision {m['precision']:.3f}  recall {m['recall']:.3f}  f1 {m['f1']:.3f}")
 
+    n_pos = len({label.video for label in gt})
     args.out.mkdir(parents=True, exist_ok=True)
     payload = {
+        "split": args.split,
         "dataset": "synthetic physics clips, exact perception injected",
         "measures": "reasoning layer only — tracking, temporal features, behaviours, dedup",
         "does_not_measure": "detection quality; that is validated separately on real CCTV",
-        "caveat": "Not a substitute for real footage of these behaviours.",
+        "caveat": (
+            "Both splits come from the same renderer, so a held-out score controls "
+            "for threshold overfitting but NOT for bias in the generator. Not a "
+            "substitute for real footage of these behaviours."
+        ),
         "iou_threshold": args.iou,
-        "clips": {"positives": 4, "hard_negatives": 5},
+        "clips": {"total": len(videos), "with_labelled_event": n_pos},
         "variants": results,
     }
-    (args.out / "reasoning_eval.json").write_text(json.dumps(payload, indent=2) + "\n")
-    print(f"\nwrote {args.out / 'reasoning_eval.json'}")
+    out_file = args.out / f"reasoning_eval_{args.split}.json"
+    out_file.write_text(json.dumps(payload, indent=2) + "\n")
+    print(f"\nwrote {out_file}")
     return 0
 
 
